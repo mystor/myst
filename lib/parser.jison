@@ -25,25 +25,56 @@
 "("                     {return '(';}
 ")"                     {return ')';}
 
-"<-"                    {return '<-';}
-"="                     {return '=';} /* ASSIGNMENT OPERATOR */
+"<-"                    {return '<-';} /* Monadic bind in do block */
 
-","                     {return ',';} /* Argument seperator - probably unnecessary... */
+/* OPERATORS */
+"+"                     {return '+';}
+"-"                     {return '-';} /* Binary & Unary */
+"*"                     {return '*';}
+"/"                     {return '/';}
+"%"                     {return '%';}
+
+"=="                    {return '==';}
+"!="                    {return '!=';}
+"<="                    {return '<=';}
+">="                    {return '>=';}
+"<"                     {return '<';}
+">"                     {return '>';}
+
+"||"                    {return '||';}
+"&&"                    {return '&&';}
+
+"!"                     {return '!';} /* Unary */
+
+"="                     {return '=';}
+
+/* match SEPERATOR */
+","                     {return ',';}
+
 "."                     {return '.';}
-";"                     {return 'SEPERATOR';}
+
+";"                     {return ';';} /* Statement Seperator */
+"_"                     {return '_';}
+
 "\""(\\\"|[^"])*"\""    {return 'STRING';}
 "'"(\\\'|[^'])*"'"      {return 'STRING';}
+
 [0-9]+("."[0-9]+)?\b    {return 'NUMBER';}
 [a-zA-Z][a-zA-Z_0-9]*\b {return 'IDENTIFIER';}
-/* I will add custom infix operators at some point... maybe... */
-/* [-+<>=/?!@#$%^&*|:~]+   {return 'OPERATOR'} */
 <<EOF>>                 {return 'EOF';}
 
 /lex
 
-%left 'OPERATOR'
 %left '='
+%right '||'
+%right '&&'
+%nonassoc '==' '!=' '<' '>' '<=' '>='
+%left '+' '-' 
+%left '*' '/' '%'
+%right '!'
+%precedence NEG
 %left INVOCATION
+
 
 %start program
 
@@ -69,7 +100,7 @@ program
 
 declarations
     : { $$ = []; }
-    | declaration SEPERATOR declarations
+    | declaration ';' declarations
         { $$ = $3.slice(); $$.unshift($1); }
     ;
 
@@ -78,21 +109,30 @@ declaration
         { $$ = {type: 'declaration', name: $1, value: $3}; }
     ;
 
-expression_list
-    : restricted_expression { $$ = [$1]; }
-    | expression_list ',' restricted_expression
-        { $$ = $1.slice(); $$.push($3); }
+argument
+    : prim_expression { $$ = $1; }
+    | '_' { $$ = {type: 'placeholder'}; }
     ;
 
 argument_list
-    : identifier { $$ = [$1]; }
-    | argument_list ',' identifier
+    : argument { $$ = [$1]; }
+    | argument_list ',' argument
         { $$ = $1.slice(); $$.push($3); }
     ;
 
-optional_argument_list
+match
+    : identifier { $$ = $1; }
+    | '_' {$$ = {type: 'placeholder'}; }
+    ;
+match_list
+    : match { $$ = [$1]; }
+    | match_list ',' match
+        { $$ = $1.slice(); $$.push($3); }
+    ;
+
+optional_match_list
     : { $$ = []; }
-    | argument_list
+    | match_list
     ;
 
 function_body
@@ -117,7 +157,7 @@ do_body_item
 
 do_body
     : { $$ = []; }
-    | do_body_item SEPERATOR do_body
+    | do_body_item ';' do_body
         { $$ = $3; $$.unshift($1); }
     ;
 
@@ -128,22 +168,78 @@ member
         { $$ = $1; }
     ;
 
-restricted_expression
+prim_expression
+    : literal { $$ = $1; }
+    | '(' expression ')' { $$ = $2; }
+    | member { $$ = $1; }
+    | FUNCTION match_list '{' function_body '}'
+        { $$ = {type: 'function', matchs: $2, body: $4}; }
+    | DO optional_match_list '{' do_body '}'
+        { $$ = {type: 'do', matchs: $2, body: $4}; }
+    | '!' prim_expression
+        { $$ = {type: 'unary', matchs: $2, op: $1}; }
+    ;
+
+expression
+    : prim_expression { $$ = $1; }
+    | prim_expression argument_list %prec INVOCATION
+        { $$ = {type: 'invocation', callee: $1, matchs: $2}; }
+    | expression '+'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '-'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '*'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '/'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '%'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '==' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '!=' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '<'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '>'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '<=' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '>=' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '||' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression '&&' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    ;
+
+/* bin_op
+    : '+'  appl_expression { $$ = {op: $1, expr: $2}; }
+    | '-'  appl_expression { $$ = {op: $1, expr: $2}; }
+    | '*'  appl_expression { $$ = {op: $1, expr: $2}; }
+    | '/'  appl_expression { $$ = {op: $1, expr: $2}; }
+    | '%'  appl_expression { $$ = {op: $1, expr: $2}; }
+    | '==' appl_expression { $$ = {op: $1, expr: $2}; }
+    | '!=' appl_expression { $$ = {op: $1, expr: $2}; }
+    | '<'  appl_expression { $$ = {op: $1, expr: $2}; }
+    | '>'  appl_expression { $$ = {op: $1, expr: $2}; }
+    | '<=' appl_expression { $$ = {op: $1, expr: $2}; }
+    | '>=' appl_expression { $$ = {op: $1, expr: $2}; }
+    | '||' appl_expression { $$ = {op: $1, expr: $2}; }
+    | '&&' appl_expression { $$ = {op: $1, expr: $2}; }
+    ;
+
+prim_expression
     : literal {$$ = $1;}
     | '(' expression ')'
         { $$ = $2; }
     | member
         { $$ = $1; }
-    | FUNCTION argument_list '{' function_body '}'
-        { $$ = {type: 'lambda', arguments: $2, body: $4}; }
-    | DO optional_argument_list '{' do_body '}'
-        { $$ = {type: 'do', arguments: $2, body: $4}; }
+    | FUNCTION match_list '{' function_body '}'
+        { $$ = {type: 'lambda', matchs: $2, body: $4}; }
+    | DO optional_match_list '{' do_body '}'
+        { $$ = {type: 'do', matchs: $2, body: $4}; }
+    | '!' prim_expression
+        { $$ = {type: 'unaryExpr', op: $1, expr: $2}; }
+    ;
+
+appl_expression
+    : prim_expression {$$ = $1;}
+    | expression argument_list
+        { $$ = {type: 'functionCall', callee: $1, matchs: $2}; }
     ;
 
 expression
-    : restricted_expression {$$ = $1;}
-    | expression expression_list
-        { $$ = {type: 'functionCall', callee: $1, arguments: $2}; }
+    : appl_expression {$$ = $1;}
+    | '-' prim_expression %prec NEG
+    | appl_expression bin_op
+        { $$ = {type: 'binaryExpr', left: $1, right: $2.expr, op: $2.op}; }
     ;
-
+*/
 
