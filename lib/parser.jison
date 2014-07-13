@@ -4,7 +4,7 @@
 
 %%
 "//"[^\n]*"\n"          {/* Ignore single-line comments */}
-"/*"([^*]|"*"[^/])"*/"    {/* Ignore multi-line comments */}
+"/*"([^*]|"*"[^/])"*/"  {/* Ignore multi-line comments */}
 \s+                     {/* Ignore Whitespace */}
 /* CODE BLOCKS */
 "fn"                    {return 'FUNCTION';}
@@ -28,6 +28,7 @@
 "<-"                    {return '<-';} /* Monadic bind in do block */
 
 /* OPERATORS */
+":"                     {return ':';}
 "+"                     {return '+';}
 "-"                     {return '-';} /* Binary & Unary */
 "*"                     {return '*';}
@@ -69,6 +70,7 @@
 %right '||'
 %right '&&'
 %nonassoc '==' '!=' '<' '>' '<=' '>='
+%right ':' '++'
 %left '+' '-' 
 %left '*' '/' '%'
 %right '!'
@@ -116,18 +118,19 @@ argument
 
 argument_list
     : argument { $$ = [$1]; }
-    | argument_list ',' argument
-        { $$ = $1.slice(); $$.push($3); }
+    | argument_list argument
+        { $$ = $1.slice(); $$.push($2); }
     ;
 
 match
     : identifier { $$ = $1; }
     | '_' {$$ = {type: 'placeholder'}; }
     ;
+
 match_list
     : match { $$ = [$1]; }
-    | match_list ',' match
-        { $$ = $1.slice(); $$.push($3); }
+    | match_list match
+        { $$ = $1.slice(); $$.push($2); }
     ;
 
 optional_match_list
@@ -168,10 +171,43 @@ member
         { $$ = $1; }
     ;
 
+obj_property
+    : identifier ':' expression
+        { $$ = {type: 'property', key: $1, value: $3}; }
+    | literal ':' expression
+        { $$ = {type: 'property', key: $1, value: $3}; }
+    ;
+
+obj_properties
+    : obj_property
+        { $$ = [$1]; }
+    | obj_properties ',' obj_property
+        { $$ = $1.slice(); $$.push($3); }
+    ;
+
+obj_literal
+    : '{' obj_properties '}'
+        { $$ = {type: 'object', properties: $2}; }
+    ;
+
+array_items
+    : expression
+        { $$ = [$1]; }
+    | array_items ',' expression
+        { $$ = $1.slice(); $$.push($3); }
+    ;
+
+array_literal
+    : '[' array_items ']'
+        { $$ = {type: 'array', values: $2}; }
+    ;
+
 prim_expression
     : literal { $$ = $1; }
     | '(' expression ')' { $$ = $2; }
     | member { $$ = $1; }
+    | obj_literal { $$ = $1; }
+    | array_literal { $$ = $1; }
     | FUNCTION match_list '{' function_body '}'
         { $$ = {type: 'function', matchs: $2, body: $4}; }
     | DO optional_match_list '{' do_body '}'
@@ -197,49 +233,6 @@ expression
     | expression '>=' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
     | expression '||' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
     | expression '&&' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+    | expression ':'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
     ;
-
-/* bin_op
-    : '+'  appl_expression { $$ = {op: $1, expr: $2}; }
-    | '-'  appl_expression { $$ = {op: $1, expr: $2}; }
-    | '*'  appl_expression { $$ = {op: $1, expr: $2}; }
-    | '/'  appl_expression { $$ = {op: $1, expr: $2}; }
-    | '%'  appl_expression { $$ = {op: $1, expr: $2}; }
-    | '==' appl_expression { $$ = {op: $1, expr: $2}; }
-    | '!=' appl_expression { $$ = {op: $1, expr: $2}; }
-    | '<'  appl_expression { $$ = {op: $1, expr: $2}; }
-    | '>'  appl_expression { $$ = {op: $1, expr: $2}; }
-    | '<=' appl_expression { $$ = {op: $1, expr: $2}; }
-    | '>=' appl_expression { $$ = {op: $1, expr: $2}; }
-    | '||' appl_expression { $$ = {op: $1, expr: $2}; }
-    | '&&' appl_expression { $$ = {op: $1, expr: $2}; }
-    ;
-
-prim_expression
-    : literal {$$ = $1;}
-    | '(' expression ')'
-        { $$ = $2; }
-    | member
-        { $$ = $1; }
-    | FUNCTION match_list '{' function_body '}'
-        { $$ = {type: 'lambda', matchs: $2, body: $4}; }
-    | DO optional_match_list '{' do_body '}'
-        { $$ = {type: 'do', matchs: $2, body: $4}; }
-    | '!' prim_expression
-        { $$ = {type: 'unaryExpr', op: $1, expr: $2}; }
-    ;
-
-appl_expression
-    : prim_expression {$$ = $1;}
-    | expression argument_list
-        { $$ = {type: 'functionCall', callee: $1, matchs: $2}; }
-    ;
-
-expression
-    : appl_expression {$$ = $1;}
-    | '-' prim_expression %prec NEG
-    | appl_expression bin_op
-        { $$ = {type: 'binaryExpr', left: $1, right: $2.expr, op: $2.op}; }
-    ;
-*/
 
