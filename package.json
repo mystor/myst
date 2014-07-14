@@ -1,15 +1,18 @@
 {
-  "name": "dynamicFunctional",
-  "version": "0.0.0",
-  "description": "",
+  "name": "myst",
+  "version": "0.0.1",
+  "description": "Referentially Transparent, Lazy Functional Programming on JavaScript",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Michael Layzell <michael@thelayzells.com>",
+  "license": "MIT",
   "dependencies": {
-    "jison": "^0.4.13",
-    "escodegen": "^1.3.3"
+    "escodegen": "^1.3.3",
+    "esmangle": "^1.0.1"
+  },
+  "devDependencies": {
+    "jison": "^0.4.13"
   }
 }
