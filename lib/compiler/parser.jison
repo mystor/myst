@@ -9,10 +9,10 @@
 /* CODE BLOCKS */
 "fn"                    {return 'FUNCTION';}
 "do"                    {return 'DO';}
-"in"                    {return 'IN';}
-"where"                 {return 'WHERE';}
 
-"module"                {return 'MODULE';} // TODO: Remove
+"import"                {return 'IMPORT';}
+"from"                  {return 'FROM';}
+"as"                    {return 'AS';}
 
 /* Special Values */
 "true"                  {return 'TRUE';}
@@ -83,6 +83,36 @@
 
 %%
 
+/* The entry point for the program */
+program
+    : declarations EOF
+        { return {type: 'Program', declarations: $1}; }
+    ;
+
+imports
+    : import ';'
+        { $$ = [$1]; }
+    | imports import ';'
+        { $$ = $1.slice(); $$.push($2); }
+    ;
+
+import
+    : FROM STRING IMPORT import_names
+        { $$ = {type: 'Import', names: $4, target: $2, as: null}; }
+    | FROM STRING IMPORT import_names AS identifier
+        { $$ = {type: 'Import', names: $4, target: $2, as: $6}; }
+    | IMPORT STRING AS identifier
+        { $$ = {type: 'Import', names: [], target: $2, as: $4}; }
+    ;
+
+import_names
+    : identifier
+        { $$ = [$1]; }
+    | import_names ',' identifier
+        { $$ = $1.slice(); $$.push($3); }
+    ;
+    
+
 /* Primitives - I use eval here, as they are supposed to be the same as their JS counterparts */
 literal
     : STRING { $$ = {type: 'Literal', value: eval($1)}; }
@@ -97,12 +127,6 @@ identifier
 
 placeholder
     : '_' { $$ = {type: 'Placeholder'}; }
-    ;
-
-/* The entry point for the program */
-program
-    : declarations EOF
-        { return {type: 'Program', declarations: $1}; }
     ;
 
 declarations
@@ -140,7 +164,7 @@ match_list
 
 optional_match_list
     : { $$ = []; }
-    | match_list
+    | match_list { $$ = $1; }
     ;
 
 function_body
@@ -165,9 +189,9 @@ do_body
 
 member
     : member '.' identifier
-        { $$ = {type: 'Member', object: $1, property: $3}; }
+        { $$ = {type: 'Member', object: $1, property: $3, op: $2}; }
     | member '::' identifier
-        { $$ = {type: 'Member', object: $1, property: $3}; }
+        { $$ = {type: 'Member', object: $1, property: $3, op: $2}; }
     | identifier
         { $$ = $1; }
     ;
@@ -214,7 +238,9 @@ prim_expression
     | DO optional_match_list '{' do_body '}'
         { $$ = {type: 'Do', params: $2, body: $4}; }
     | '!' prim_expression
-        { $$ = {type: 'UnaryOperator', arguments: [$2], op: $1}; }
+        { $$ = {type: 'UnaryOperator', argument: $2, op: $1}; }
+    | '-' prim_expression %prec NEG
+        { $$ = {type: 'UnaryOperator', argument: $2, op: $1}; }
     ;
 
 expression

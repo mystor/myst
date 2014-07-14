@@ -9,6 +9,7 @@ var compiler = require('../lib/compiler/compiler.js');
 var desugar = require('../lib/compiler/desugar.js');
 
 var escodegen = require('escodegen');
+var esmangle = require('esmangle');
 
 var parsed = parser.parse([
   "main = fn x _ {",
@@ -25,6 +26,13 @@ var parsed = parser.parse([
   "};"
 ].join('\n'));
 
+var parsed = parser.parse([
+  "main = do {",
+  "  G::console.log;",
+  // "  join $ G::console::log `ap` return 'Hello World';",
+  "};"
+].join('\n'));
+
 console.log(prettyjson.render(parsed, jsonOpts));
 
 var desugared = desugar.desugar(parsed);
@@ -33,7 +41,22 @@ console.log(prettyjson.render(desugared, jsonOpts));
 
 var transformed = compiler.transform(desugared);
 
+
 // console.log(prettyjson.render(transformed, jsonOpts));
 
 console.log(escodegen.generate(transformed));
 
+var optimized = esmangle.optimize(transformed, null);
+
+var mangled = esmangle.mangle(optimized);
+
+console.log(escodegen.generate(mangled, {
+  format: {
+    renumber: true,
+    hexadecimal: true,
+    escapeless: true,
+    compact: true,
+    semicolons: false,
+    parentheses: false
+  }
+}));
