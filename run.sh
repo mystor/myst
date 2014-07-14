@@ -1,1 +1,1 @@
-clear; date; node lib/parser.js
+clear; date; node test/test.js

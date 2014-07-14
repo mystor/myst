@@ -25,6 +25,7 @@
 "("                     {return '(';}
 ")"                     {return ')';}
 
+"::"                    {return '::';}
 "<-"                    {return '<-';} /* Monadic bind in do block */
 
 /* OPERATORS */
@@ -84,36 +85,40 @@
 
 /* Primitives - I use eval here, as they are supposed to be the same as their JS counterparts */
 literal
-    : STRING { $$ = {type: 'literally', value: eval($1)}; }
-    | NUMBER { $$ = {type: 'literal', value: eval($1)}; }
-    | TRUE  { $$ = {type: 'literal', valueType: 'BOOLEAN', value: true}; }
-    | FALSE { $$ = {type: 'literal', valueType: 'BOOLEAN', value: false}; }
+    : STRING { $$ = {type: 'Literal', value: eval($1)}; }
+    | NUMBER { $$ = {type: 'Literal', value: eval($1)}; }
+    | TRUE  { $$ = {type: 'Literal', valueType: 'BOOLEAN', value: true}; }
+    | FALSE { $$ = {type: 'Literal', valueType: 'BOOLEAN', value: false}; }
     ;
 
 identifier
-    : IDENTIFIER { $$ = {type: 'identifier', name: $1}; }
+    : IDENTIFIER { $$ = {type: 'Identifier', name: $1}; }
+    ;
+
+placeholder
+    : '_' { $$ = {type: 'Placeholder'}; }
     ;
 
 /* The entry point for the program */
 program
     : declarations EOF
-        { return {type: 'program', declarations: $1}; }
+        { return {type: 'Program', declarations: $1}; }
     ;
 
 declarations
     : { $$ = []; }
-    | declaration ';' declarations
-        { $$ = $3.slice(); $$.unshift($1); }
+    | declarations declaration ';'
+        { $$ = $1.slice(); $$.push($2); }
     ;
 
 declaration
     : IDENTIFIER '=' expression
-        { $$ = {type: 'declaration', name: $1, value: $3}; }
+        { $$ = {type: 'Declaration', name: $1, value: $3}; }
     ;
 
 argument
     : prim_expression { $$ = $1; }
-    | '_' { $$ = {type: 'placeholder'}; }
+    | placeholder { $$ = $1; }
     ;
 
 argument_list
@@ -124,7 +129,7 @@ argument_list
 
 match
     : identifier { $$ = $1; }
-    | '_' {$$ = {type: 'placeholder'}; }
+    | placeholder { $$ = $1; }
     ;
 
 match_list
@@ -139,21 +144,15 @@ optional_match_list
     ;
 
 function_body
-    : expression
-        { $$ = {type: 'functionBody', returns: $1, declarations: []}; }
-    | expression WHERE declarations
-        { $$ = {type: 'functionBody', returns: $1, declarations: $3}; }
-    | declarations IN expression
-        { $$ = {type: 'functionBody', returns: $3, declarations: $1}; }
-    | declarations IN expression WHERE declarations
-        { $$ = {type: 'functionBody', returns: $3, declarations: $1.concat($5)}; }
+    : declarations expression
+        { $$ = {type: 'FunctionBody', returns: $2, declarations: $1}; }
     ;
 
 do_body_item
     : member '<-' expression
-        { $$ = {type: 'bind', target: $1, value: $3}; }
+        { $$ = {type: 'Bind', target: $1, value: $3}; }
     | expression
-        { $$ = {type: 'action', value: $1}; }
+        { $$ = {type: 'Action', value: $1}; }
     | declaration
         { $$ = $1; }
     ;
@@ -166,16 +165,18 @@ do_body
 
 member
     : member '.' identifier
-        { $$ = {type: 'memberExpression', object: $1, property: $3}; }
+        { $$ = {type: 'Member', object: $1, property: $3}; }
+    | member '::' identifier
+        { $$ = {type: 'Member', object: $1, property: $3}; }
     | identifier
         { $$ = $1; }
     ;
 
 obj_property
     : identifier ':' expression
-        { $$ = {type: 'property', key: $1, value: $3}; }
+        { $$ = {type: 'Property', key: $1, value: $3}; }
     | literal ':' expression
-        { $$ = {type: 'property', key: $1, value: $3}; }
+        { $$ = {type: 'Property', key: $1, value: $3}; }
     ;
 
 obj_properties
@@ -187,7 +188,7 @@ obj_properties
 
 obj_literal
     : '{' obj_properties '}'
-        { $$ = {type: 'object', properties: $2}; }
+        { $$ = {type: 'Object', properties: $2}; }
     ;
 
 array_items
@@ -199,7 +200,7 @@ array_items
 
 array_literal
     : '[' array_items ']'
-        { $$ = {type: 'array', values: $2}; }
+        { $$ = {type: 'Array', elements: $2}; }
     ;
 
 prim_expression
@@ -209,30 +210,30 @@ prim_expression
     | obj_literal { $$ = $1; }
     | array_literal { $$ = $1; }
     | FUNCTION match_list '{' function_body '}'
-        { $$ = {type: 'function', matchs: $2, body: $4}; }
+        { $$ = {type: 'Function', params: $2, body: $4}; }
     | DO optional_match_list '{' do_body '}'
-        { $$ = {type: 'do', matchs: $2, body: $4}; }
+        { $$ = {type: 'Do', params: $2, body: $4}; }
     | '!' prim_expression
-        { $$ = {type: 'unary', matchs: $2, op: $1}; }
+        { $$ = {type: 'UnaryOperator', arguments: [$2], op: $1}; }
     ;
 
 expression
     : prim_expression { $$ = $1; }
     | prim_expression argument_list %prec INVOCATION
-        { $$ = {type: 'invocation', callee: $1, matchs: $2}; }
-    | expression '+'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '-'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '*'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '/'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '%'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '==' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '!=' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '<'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '>'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '<=' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '>=' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '||' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression '&&' expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
-    | expression ':'  expression { $$ = {type: 'binaryOp', op: $2, left: $1, right: $3}; }
+        { $$ = {type: 'Invocation', callee: $1, arguments: $2}; }
+    | expression '+'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '-'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '*'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '/'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '%'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '==' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '!=' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '<'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '>'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '<=' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '>=' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '||' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression '&&' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
+    | expression ':'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3}; }
     ;
 
