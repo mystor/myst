@@ -1,6 +1,4 @@
-var parser = require('./parser.js');
 var jsast = require('./jsast.js');
-var escodegen = require('escodegen');
 
 var runtimeImport = {
   type: 'VariableDeclaration',
@@ -171,9 +169,7 @@ function transformAll(asts) {
   });
 }
 
-function compile(source) {
-}
-
 module.exports = {
   transform: transform
 };
+

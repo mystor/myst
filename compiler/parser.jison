@@ -189,9 +189,9 @@ do_body
 
 member
     : member '.' identifier
-        { $$ = {type: 'Member', object: $1, property: $3, op: $2}; }
+        { $$ = {type: 'Momber', object: $1, property: $3, op: $2}; }
     | member '::' identifier
-        { $$ = {type: 'Member', object: $1, property: $3, op: $2}; }
+        { $$ = {type: 'Momber', object: $1, property: $3, op: $2}; }
     | identifier
         { $$ = $1; }
     ;

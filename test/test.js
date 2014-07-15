@@ -27,10 +27,8 @@ var parsed = parser.parse([
 ].join('\n'));
 
 var parsed = parser.parse([
-  "main = do {",
-  "  G::console.log;",
-  // "  join $ G::console::log `ap` return 'Hello World';",
-  "};"
+  "log = fn msg { bind G::console::log (fn log { log msg }) };",
+  "main = log 'Hello World!';"
 ].join('\n'));
 
 console.log(prettyjson.render(parsed, jsonOpts));
