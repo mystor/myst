@@ -26,6 +26,50 @@ var runtimeImport = {
 
 var transforms = {
   Program: function(ast) {
+    var imports = ast.imports.map(function(imprt) {
+      var declarations = imprt.names.map(function(name) {
+        return {
+          type: 'VariableDeclarator',
+          id: transform(name),
+          init: {
+            type: 'MemberExpression',
+            object: transform(imprt.as),
+            property: transform(name)
+          }
+        };
+      });
+
+      declarations.unshift({
+        type: 'VariableDeclarator',
+        id: transform(imprt.as),
+        init: {
+          type: 'CallExpression',
+          callee: {
+            type: 'Identifier',
+            name: 'require'
+          },
+          arguments: [
+            transform(imprt.target)
+          ]
+        }
+      });
+
+      return {
+        type: 'VariableDeclaration',
+        declarations: declarations,
+        kind: 'var'
+      };
+    });
+
+    var body = [
+      runtimeImport,
+      {
+        type: 'VariableDeclaration',
+        declarations: transformAll(ast.declarations),
+        kind: 'var'
+      }
+    ].concat(imports);
+
     return {
       type: 'Program',
       body: [
@@ -33,14 +77,7 @@ var transforms = {
           type: 'ExpressionStatement',
           expression: {
             type: 'CallExpression',
-            callee: jsast.anonFn([], [
-              runtimeImport,
-              {
-                type: 'VariableDeclaration',
-                declarations: transformAll(ast.declarations),
-                kind: 'var'
-              }
-            ]),
+            callee: jsast.anonFn([], body),
             arguments: []
           }
         }

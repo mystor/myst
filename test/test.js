@@ -1,17 +1,9 @@
 var fs = require('fs');
 var jison = require('jison');
 var prettyjson = require('prettyjson');
+var compiler = require('myst/compiler');
 
-var jsonOpts = {};
-
-var parser = require('../lib/compiler/parser.js');
-var compiler = require('../lib/compiler/compiler.js');
-var desugar = require('../lib/compiler/desugar.js');
-
-var escodegen = require('escodegen');
-var esmangle = require('esmangle');
-
-var parsed = parser.parse([
+/* var parsed = parser.parse([
   "main = fn x _ {",
   "  a = b;",
   "  c = a _ x;",
@@ -29,32 +21,34 @@ var parsed = parser.parse([
 var parsed = parser.parse([
   "log = fn msg { bind G::console::log (fn log { log msg }) };",
   "main = log 'Hello World!';"
-].join('\n'));
+  ].join('\n')); */
 
-console.log(prettyjson.render(parsed, jsonOpts));
+/* var parsed = parser.parse([
+  "Maybe = extend Monad {",
+  "  bind: fn a b {",
+  "    if (instance Just a)",
+  "       (b a.value)",
+  "       a",
+  "  },",
+  "  return: Just",
+  "};",
 
-var desugared = desugar.desugar(parsed);
+  "Just = data a { value: a };",
+  "Nothing = data { value: error 'Attempt to get value of Nothing' };",
 
-console.log(prettyjson.render(desugared, jsonOpts));
+  "main = do IO {",
+  "  return = IO.return;",
+  "  console::log 'Hello World';",
+  "  return 10",
+  "};"
+  ].join('\n')); */
 
-var transformed = compiler.transform(desugared);
+var code = [
+  "import 'fs' as fs;",
+  "main = do IO {",
+  "  x <- hello 'world';",
+  "  print x;",
+  "};"
+].join('\n');
 
-
-// console.log(prettyjson.render(transformed, jsonOpts));
-
-console.log(escodegen.generate(transformed));
-
-var optimized = esmangle.optimize(transformed, null);
-
-var mangled = esmangle.mangle(optimized);
-
-console.log(escodegen.generate(mangled, {
-  format: {
-    renumber: true,
-    hexadecimal: true,
-    escapeless: true,
-    compact: true,
-    semicolons: false,
-    parentheses: false
-  }
-}));
+console.log(compiler.compile(code));

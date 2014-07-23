@@ -7,7 +7,7 @@ var transformer = require('./transformer.js');
 
 function compile(source, minify) {
   var parsed = parser.parse(source);
-  var desugared = desugarer.desugar(parser);
+  var desugared = desugarer.desugar(parsed);
   var transformed = transformer.transform(desugared);
   
   if (minify) {

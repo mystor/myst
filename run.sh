@@ -4,6 +4,9 @@
 # done
 
 function process_jison() {
+	echo "*****************"
+	echo "compiling grammar"
+	echo "*****************"
 	jison $1 -o "$(dirname $1)/$(basename $1 '.jison').js"
 }
 
@@ -25,7 +28,7 @@ function change() {
 	done
 }
 
-fswatch -0 lib | change
+fswatch -0 . | change
 
 
 # mkfifo pipe

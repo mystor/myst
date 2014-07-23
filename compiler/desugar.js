@@ -31,7 +31,57 @@ function identifierify(string) {
 }
 
 var desugarers = {
-  Program: only(['declarations']),
+  Program: function(ast) {
+    function toIdentifier(string) {
+      return {
+        type: 'Identifier',
+        name: string
+      };
+    }
+    // Add a new import for prelude
+    ast.imports.push({
+      type: 'Import',
+      target: {type: 'Literal', value: 'myst/prelude'},
+      names: [
+        'bind',
+        'deref',
+        'derefM',
+        'iff',
+        '_PLUS_',
+        '_MINUS_',
+        '_TIMES_',
+        '_SLASH_',
+        '_MODULO_',
+        '_EQ__EQ_',
+        '_EXCLAM__EQ_',
+        '_LT_',
+        '_GT_',
+        '_LT__EQ_',
+        '_GT__EQ_',
+        '_BAR__BAR_',
+        '_AND__AND_',
+        '_EXCLAM_',
+        '_COLON_'
+      ].map(toIdentifier),
+      as: null
+    });
+
+    return {
+      type: 'Program',
+      imports: desugarAll(ast.imports),
+      declarations: desugarAll(ast.declarations),
+      loc: ast.loc
+    };
+  },
+
+  Import: function(ast) {
+    ast.as = ast.as || {
+      type: 'Identifier',
+      name: '__' + id_counter++
+    };
+
+    return ast;
+  },
 
   Declaration: only(['value']),
 
@@ -116,7 +166,7 @@ var desugarers = {
         var last = body.pop();
 
         if (last.type === 'Declaration') {
-          declarations.unshift(desugar(last));
+          declarations.unshift(last);
         } else if (last.type === 'Action' || last.type === 'Bind') {
           // Get the expression
           var action = last.value;
@@ -124,7 +174,12 @@ var desugarers = {
           if (expr) {
             expr = {
               type: 'Invocation',
-              callee: {type: 'Identifier', name: 'bind'},
+              callee: {
+                type: 'Member',
+                object: ast.monad,
+                property: {type: 'Identifier', name: 'bind'},
+                op: '.'
+              },
               arguments: [
                 action,
                 {
@@ -151,7 +206,6 @@ var desugarers = {
         throw new Error('do blocks must contain at least one non-declaration element');
       // Consume all declarations off of the end of the list - they have no effect
 
-      console.log("******", JSON.stringify(expr, null, 4));
       return desugar(expr);
     }
   },
@@ -270,7 +324,6 @@ var desugarers = {
 };
 
 function desugar(ast) {
-  console.log(ast);
   if (! desugarers.hasOwnProperty(ast.type))
     throw new Error('No desugarer for type: ' + ast.type)
 
