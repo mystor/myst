@@ -1,0 +1,11 @@
+import 'fs' as fs;
+
+log = fn x {
+  IO.bind console::log fn log { log x }
+};
+
+main = do IO {
+  x <- IO.return "Hello";
+  log x;
+};
+

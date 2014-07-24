@@ -1,5 +1,14 @@
-var id_counter = 0;
+var prelude = require('../prelude.js');
+var preludeImports = Object.keys(prelude).map(function(str) {
+  return { type: 'Identifier', name: str };
+});
 
+var idCounter = 0;
+function uniqueId() {
+  return '__' + idCounter++;
+}
+
+// Descend into the values named in [val]
 function only(val) {
   return function(ast) {
     val.forEach(function(k) {
@@ -14,6 +23,7 @@ function only(val) {
   };
 }
 
+// Convert a symbol into an identifier
 function identifierify(string) {
   return (string
     .replace(':', '_COLON_')
@@ -39,32 +49,18 @@ var desugarers = {
       };
     }
     // Add a new import for prelude
-    ast.imports.push({
-      type: 'Import',
-      target: {type: 'Literal', value: 'myst/prelude'},
-      names: [
-        'bind',
-        'deref',
-        'derefM',
-        'iff',
-        '_PLUS_',
-        '_MINUS_',
-        '_TIMES_',
-        '_SLASH_',
-        '_MODULO_',
-        '_EQ__EQ_',
-        '_EXCLAM__EQ_',
-        '_LT_',
-        '_GT_',
-        '_LT__EQ_',
-        '_GT__EQ_',
-        '_BAR__BAR_',
-        '_AND__AND_',
-        '_EXCLAM_',
-        '_COLON_'
-      ].map(toIdentifier),
-      as: null
+    var explicitPrelude = ast.imports.some(function(imprt) {
+      return imprt.target.value === 'myst/prelude';
     });
+
+    if (! explicitPrelude) {
+      ast.imports.push({
+        type: 'Import',
+        target: {type: 'Literal', value: 'myst/prelude'},
+        names: preludeImports,
+        as: null
+      });
+    }
 
     return {
       type: 'Program',
@@ -77,8 +73,8 @@ var desugarers = {
   Import: function(ast) {
     ast.as = ast.as || {
       type: 'Identifier',
-      name: '__' + id_counter++
-    };
+      name: uniqueId()
+    }; // Ensure that _as_ is set.
 
     return ast;
   },
@@ -97,7 +93,7 @@ var desugarers = {
       if (param.type === 'Placeholder') {
         return {
           type: 'Identifier',
-          name: '__' + id_counter++,
+          name: uniqueId(),
           loc: param.loc
         };
       } else {
@@ -118,7 +114,7 @@ var desugarers = {
         if (argument.type === 'Placeholder') {
           var newId = {
             type: 'Identifier',
-            name: '__' + id_counter++,
+            name: uniqueId(),
             loc: argument.loc
           };
           wrapperParams.push(newId);
@@ -247,7 +243,7 @@ var desugarers = {
       }
     } else if (ast.op === '.') {
       if (object.__io) { // XXX: Make this less disgusting
-        var id = {type: 'Identifier', name: '__' + id_counter++};
+        var id = {type: 'Identifier', name: uniqueId()};
         return desugar({
           type: 'Invocation',
           callee: {type: 'Identifier', name: 'bind'},

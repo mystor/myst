@@ -1,54 +1,30 @@
 var fs = require('fs');
+var path = require('path');
 var jison = require('jison');
 var prettyjson = require('prettyjson');
 var compiler = require('myst/compiler');
 
-/* var parsed = parser.parse([
-  "main = fn x _ {",
-  "  a = b;",
-  "  c = a _ x;",
-  "  c + x",
-  "};",
-  "",
-  "feign = do name {",
-  "  log (str 'hello! ' name);",
-  "  x <- read;",
-  "  y = parseInt x;",
-  "  log y;",
-  "};"
+var p = path.join(__dirname, 'myModule.myst');
+var code = fs.readFileSync(p, { encoding: 'UTF-8' });
+
+var compiled = compiler.compile(code);
+
+console.log([
+  "******************",
+  "* Generated Code *",
+  "******************",
+  ""
 ].join('\n'));
+console.log(compiled);
 
-var parsed = parser.parse([
-  "log = fn msg { bind G::console::log (fn log { log msg }) };",
-  "main = log 'Hello World!';"
-  ].join('\n')); */
+var out = path.join(__dirname, 'myModule.js_out');
+fs.writeFileSync(out, compiled, { encoding: 'UTF-8' });
 
-/* var parsed = parser.parse([
-  "Maybe = extend Monad {",
-  "  bind: fn a b {",
-  "    if (instance Just a)",
-  "       (b a.value)",
-  "       a",
-  "  },",
-  "  return: Just",
-  "};",
-
-  "Just = data a { value: a };",
-  "Nothing = data { value: error 'Attempt to get value of Nothing' };",
-
-  "main = do IO {",
-  "  return = IO.return;",
-  "  console::log 'Hello World';",
-  "  return 10",
-  "};"
-  ].join('\n')); */
-
-var code = [
-  "import 'fs' as fs;",
-  "main = do IO {",
-  "  x <- hello 'world';",
-  "  print x;",
-  "};"
-].join('\n');
-
-console.log(compiler.compile(code));
+console.log([
+  "********************",
+  "* Execution Result *",
+  "********************",
+  ""
+].join('\n'));
+var myModule = require('./myModule.js_out');
+myModule.main();
