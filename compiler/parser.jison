@@ -75,6 +75,7 @@
 %left '+' '-' 
 %left '*' '/' '%'
 %right '!'
+%left '.'
 %precedence NEG
 %left INVOCATION
 
@@ -188,7 +189,7 @@ function
 /* "DO" block */
 
 do_body_item
-    : member '<-' expression
+    : identifier '<-' expression
         { $$ = {type: 'Bind', target: $1, value: $3, loc: @0}; }
     | expression
         { $$ = {type: 'Action', value: $1, loc: @0}; }
@@ -210,10 +211,8 @@ do
 /* Member Expression */
 
 member
-    : member '.' identifier
-        { $$ = {type: 'Member', object: $1, property: $3, op: $2, loc: @0}; }
-    | member '::' identifier
-        { $$ = {type: 'Member', object: $1, property: $3, op: $2, loc: @0}; }
+    : prim_expression '.' identifier
+        { $$ = {type: 'Member', object: $1, property: $3, loc: @0}; }
     | identifier
         { $$ = $1; }
     ;

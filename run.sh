@@ -1,8 +1,3 @@
-# fswatch -0 lib | while read -d "" event; do
-#   echo $event
-#   echo "change!"
-# done
-
 function process_jison() {
 	echo "*****************"
 	echo "compiling grammar"
@@ -24,18 +19,10 @@ function change() {
 			process_jison "$event"
 		else if echo "$event" | grep -q 'js$'; then
 			process_js "$event"
+		else if echo "$event" | grep -q 'myst$'; then
+			process_js "$event"
 		fi fi
 	done
 }
 
 fswatch -0 . | change
-
-
-# mkfifo pipe
- # cat pipe | cat # grep 'jison$' | cat
-# fswatch -0 lib | cat # tee pipe | grep 'js$' | cat
-
-# clear
-# date
-# jison lib/compiler/parser.jison -o lib/compiler/parser.js
-# node test/test.js

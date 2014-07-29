@@ -1,18 +1,26 @@
 (function () {
-    var $$RUNTIME$$ = require('myst/runtime');
-    var log = $$RUNTIME$$.Thunk(function () {
-            return $$RUNTIME$$.Pure(function (x) {
-                return $$RUNTIME$$.call($$RUNTIME$$.call(deref, IO, 'bind'), $$RUNTIME$$.call($$RUNTIME$$.Pure(function (__1) {
-                    return $$RUNTIME$$.call(derefM, __1, 'log');
-                }), console), $$RUNTIME$$.Pure(function (log) {
-                    return $$RUNTIME$$.call(log, x);
-                }));
+    var __4 = require('myst/runtime'), IO = __4.IO, Thunk = __4.Thunk, Pure = __4.Pure, call = __4.call, force = __4.force, doIO = __4.doIO;
+    var trace = Thunk(function () {
+            return Pure(function (m, y) {
+                return call(unsafePerformIO, call(call(get, IO, 'bind'), call(call(get, console, 'log'), m, y), Pure(function (__1) {
+                    return call(call(get, IO, 'return'), y);
+                })));
             });
-        }), main = $$RUNTIME$$.Thunk(function () {
-            return $$RUNTIME$$.call($$RUNTIME$$.call(deref, IO, 'bind'), $$RUNTIME$$.call($$RUNTIME$$.call(deref, IO, 'return'), 'Hello'), $$RUNTIME$$.Pure(function (x) {
-                return $$RUNTIME$$.call(log, x);
+        }), fact = Thunk(function () {
+            return Pure(function (x) {
+                return call(iff, call(_LT__EQ_, x, 0), 1, call(_TIMES_, x, call(fact, call(_MINUS_, x, 1))));
+            });
+        }), main = Thunk(function () {
+            return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'Hello World!'), Pure(function (__2) {
+                return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'This is a pretty cool place!'), Pure(function (__3) {
+                    return call(call(get, console, 'log'), call(fact, 5));
+                }));
             }));
         });
-    var fs = require('fs');
-    var __0 = require('myst/prelude'), bind = __0.bind, deref = __0.deref, derefM = __0.derefM, iff = __0.iff, _PLUS_ = __0._PLUS_, _MINUS_ = __0._MINUS_, _TIMES_ = __0._TIMES_, _SLASH_ = __0._SLASH_, _MODULO_ = __0._MODULO_, _EQ__EQ_ = __0._EQ__EQ_, _EXCLAM__EQ_ = __0._EXCLAM__EQ_, _LT_ = __0._LT_, _GT_ = __0._GT_, _LT__EQ_ = __0._LT__EQ_, _GT__EQ_ = __0._GT__EQ_, _BAR__BAR_ = __0._BAR__BAR_, _AND__AND_ = __0._AND__AND_, _EXCLAM_ = __0._EXCLAM_, _COLON_ = __0._COLON_;
+    module.exports = {
+        trace: trace,
+        fact: fact,
+        main: main
+    };
+    var __0 = require('myst/prelude'), iff = __0.iff, get = __0.get, unsafePerformIO = __0.unsafePerformIO, _PLUS_ = __0._PLUS_, _MINUS_ = __0._MINUS_, _TIMES_ = __0._TIMES_, _SLASH_ = __0._SLASH_, _MODULO_ = __0._MODULO_, _EQ__EQ_ = __0._EQ__EQ_, _EXCLAM__EQ_ = __0._EXCLAM__EQ_, _LT_ = __0._LT_, _GT_ = __0._GT_, _LT__EQ_ = __0._LT__EQ_, _GT__EQ_ = __0._GT__EQ_, _BAR__BAR_ = __0._BAR__BAR_, _AND__AND_ = __0._AND__AND_, _EXCLAM_ = __0._EXCLAM_, _COLON_ = __0._COLON_;
 }());

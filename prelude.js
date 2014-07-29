@@ -3,33 +3,13 @@ var IO = $$RUNTIME$$.IO;
 var Pure = $$RUNTIME$$.Pure;
 var force = $$RUNTIME$$.force;
 var Thunk = $$RUNTIME$$.Thunk;
-var Immutable = $$RUNTIME$$.Immutable;
 var call = $$RUNTIME$$.call;
 
-var bind = Pure(function(x, y) {
-  // Check if x is IO
-  return IO(function() {
-    var v = force(x)();
-    var rIO = force(call(y, v));
-    return rIO();
-  });
-});
 
-var deref = Pure(function(obj, prop) {
+var get = Pure(function(obj, prop) {
   var o = force(obj);
-  if (o && o['$$immutable']) {
-    var val = o[prop];
-    if (typeof val !== 'undefined')
-      return val;
-  }
 
-  throw new Error('Could not dereference property: ' + prop + ' from object: ' + obj); // TODO: Better error reporting
-});
-
-var derefM = Pure(function(obj, prop) {
-  return IO(function() {
-    return force(obj)[prop];
-  });
+  return o[prop];
 });
 
 var iff = Pure(function(cond, consequent, alternative) {
@@ -38,6 +18,10 @@ var iff = Pure(function(cond, consequent, alternative) {
   } else {
     return alternative;
   }
+});
+
+var unsafePerformIO = Pure(function(action) {
+  return $$RUNTIME$$.doIO(action);
 });
 
 /* add */
@@ -50,7 +34,7 @@ var _PLUS_ = Pure(function(a, b) {
 });
 
 /* minus */
-var _MINUS_ = Pure(function(a, b) {
+var _MINUS_ = Pure(function _MINUS_(a, b) {
   var a = force(a), b = force(b);
   if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
     throw new Error('Both arguments to - operator must be numbers');
@@ -64,7 +48,7 @@ var _TIMES_ = Pure(function(a, b) {
   if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
     throw new Error('Both arguments to * operator must be numbers');
 
-  return a - b;
+  return a * b;
 });
 
 /* division */
@@ -108,7 +92,7 @@ var _GT_ = Pure(function(a, b) {
 });
 
 /* less than or equals */
-var _LT__EQ_ = Pure(function(a, b) {
+var _LT__EQ_ = Pure(function _LT__EQ_(a, b) {
   return force(a) <= force(b);
 });
 
@@ -148,11 +132,10 @@ var _COLON_ = Pure(function(a, b) {
   return nb;
 });
 
-module.exports = Immutable({
-  bind: bind,
-  deref: deref,
-  derefM: derefM,
+module.exports = {
   iff: iff,
+  get: get,
+  unsafePerformIO: unsafePerformIO,
   _PLUS_: _PLUS_,
   _MINUS_: _MINUS_,
   _TIMES_: _TIMES_,
@@ -168,4 +151,4 @@ module.exports = Immutable({
   _AND__AND_: _AND__AND_,
   _EXCLAM_: _EXCLAM_,
   _COLON_: _COLON_
-});
+};

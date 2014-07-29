@@ -1,74 +1,53 @@
-var jsast = require('./jsast.js');
+var jsast = require('./jsast');
+var ast = require('./ast');
 
-var runtimeImport = {
-  type: 'VariableDeclaration',
-  declarations: [
-    {
-      type: 'VariableDeclarator',
-      id: jsast.runtime_DOT_(),
-      init: {
-        type: 'CallExpression',
-        callee: {
-          type: 'Identifier',
-          name: 'require'
-        },
-        arguments: [
-          {
-            type: 'Literal',
-            value: 'myst/runtime'
-          }
-        ]
-      }
-    }
-  ],
-  kind: 'var'
+var runtime = require('../runtime');
+var runtimeImport = function() {
+  return transform({
+    type: 'Import',
+    target: { type: 'Literal', value: 'myst/runtime' },
+    names: Object.keys(runtime).map(function(str) {
+      return { type: 'Identifier', name: str };
+    }),
+    as: ast.uniqueId()
+  });
 };
 
 var transforms = {
   Program: function(ast) {
-    var imports = ast.imports.map(function(imprt) {
-      var declarations = imprt.names.map(function(name) {
-        return {
-          type: 'VariableDeclarator',
-          id: transform(name),
-          init: {
-            type: 'MemberExpression',
-            object: transform(imprt.as),
-            property: transform(name)
-          }
-        };
-      });
-
-      declarations.unshift({
-        type: 'VariableDeclarator',
-        id: transform(imprt.as),
-        init: {
-          type: 'CallExpression',
-          callee: {
-            type: 'Identifier',
-            name: 'require'
-          },
-          arguments: [
-            transform(imprt.target)
-          ]
-        }
-      });
-
-      return {
-        type: 'VariableDeclaration',
-        declarations: declarations,
-        kind: 'var'
-      };
-    });
-
     var body = [
-      runtimeImport,
+      runtimeImport(),
       {
         type: 'VariableDeclaration',
-        declarations: transformAll(ast.declarations),
+        declarations: transform(ast.declarations),
         kind: 'var'
+      },
+      {
+        type: 'ExpressionStatement',
+        expression: {
+          type: 'AssignmentExpression',
+          operator: '=',
+          left: jsast.getMembers('module', 'exports'),
+          right: {
+            type: 'ObjectExpression',
+            properties: ast.declarations.map(function(declaration) {
+              return {
+                type: "Property",
+                key: {
+                  type: 'Identifier',
+                  name: declaration.name
+                },
+                value: {
+                  type: 'Identifier',
+                  name: declaration.name
+                },
+                kind: 'var'
+              };
+            })
+          }
+        }
       }
-    ].concat(imports);
+    ].concat(transform(ast.imports));
 
     return {
       type: 'Program',
@@ -82,6 +61,41 @@ var transforms = {
           }
         }
       ]
+    };
+  },
+
+  Import: function(ast) {
+    var declarations = ast.names.map(function(name) {
+      return {
+        type: 'VariableDeclarator',
+        id: transform(name),
+        init: {
+          type: 'MemberExpression',
+          object: transform(ast.as),
+          property: transform(name)
+        }
+      };
+    });
+
+    declarations.unshift({
+      type: 'VariableDeclarator',
+      id: transform(ast.as),
+      init: {
+        type: 'CallExpression',
+        callee: {
+          type: 'Identifier',
+          name: 'require'
+        },
+        arguments: [
+          transform(ast.target)
+        ]
+      }
+    });
+
+    return {
+      type: 'VariableDeclaration',
+      declarations: declarations,
+      kind: 'var'
     };
   },
 
@@ -113,7 +127,7 @@ var transforms = {
   Function: function(ast) {
     return {
       type: 'CallExpression',
-      callee: jsast.runtime_DOT_('Pure'),
+      callee: jsast.getMembers('Pure'),
       arguments: [
         jsast.anonFn(ast.params.map(function(param) {
           if (param.type !== 'Identifier')
@@ -130,7 +144,7 @@ var transforms = {
       return [
         {
           type: 'VariableDeclaration',
-          declarations: transformAll(ast.declarations),
+          declarations: transform(ast.declarations),
           kind: 'var'
         },
         {
@@ -148,11 +162,11 @@ var transforms = {
 
   Invocation: function(ast) {
     var args = [transform(ast.callee)];
-    args = args.concat(transformAll(ast.arguments));
+    args = args.concat(transform(ast.arguments));
 
     return {
       type: 'CallExpression',
-      callee: jsast.runtime_DOT_('call'),
+      callee: jsast.getMembers('call'),
       arguments: args
     }
   },
@@ -160,11 +174,11 @@ var transforms = {
   Object: function(ast) {
     return {
       type: 'CallExpression',
-      callee: jsast.runtime_DOT_('Immutable'),
+      callee: jsast.getMembers('Immutable'),
       arguments: [
         {
           type: 'ObjectExpression',
-          properties: transformAll(ast.properties)
+          properties: transform(ast.properties)
         }
       ]
     };
@@ -182,11 +196,11 @@ var transforms = {
   Array: function(ast) {
     return {
       type: 'CallExpression',
-      callee: jsast.runtime_DOT_('Immutable'),
+      callee: jsast.getMembers('Immutable'),
       arguments: [
         {
           type: 'ArrayExpression',
-          elements: transformAll(ast.elements)
+          elements: transform(ast.elements)
         }
       ]
     };
@@ -194,19 +208,15 @@ var transforms = {
 };
 
 function transform(ast) {
+  if (Array.isArray(ast))
+    return ast.map(transform);
+
   if (! transforms.hasOwnProperty(ast.type))
     throw new Error('The type: ' + ast.type + ' is not supported');
 
   return transforms[ast.type](ast);
 }
 
-function transformAll(asts) {
-  return asts.map(function(ast) {
-    return transform(ast);
-  });
-}
-
 module.exports = {
   transform: transform
 };
-

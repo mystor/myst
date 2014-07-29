@@ -23,4 +23,3 @@
 
     $$RUNTIME$$.force(main)();
 }());
-

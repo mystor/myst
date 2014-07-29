@@ -1,11 +1,18 @@
-import 'fs' as fs;
+trace = fn m y {
+  unsafePerformIO do IO {
+    console.log m y;
+    IO.return y;
+  }
+};
 
-log = fn x {
-  IO.bind console::log fn log { log x }
+fact = fn x {
+  iff (x <= 0)
+    1
+    (x * fact (x - 1))
 };
 
 main = do IO {
-  x <- IO.return "Hello";
-  log x;
+  console.log "Hello World!";
+  console.log "This is a pretty cool place!";
+  console.log (fact 5);
 };
-

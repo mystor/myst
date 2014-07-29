@@ -22,13 +22,6 @@ var getMembers = function(obj) {
   }
 };
 
-// We often want to get access to a property of the Runtime object
-// This is done as follows:
-var runtime_DOT_ = function() {
-  var tree = ['$$RUNTIME$$'].concat(slice.apply(arguments));
-  return getMembers.apply(null, tree);
-};
-
 var anonFn = function(args, body) {
   return {
     type: 'FunctionExpression',
@@ -53,7 +46,7 @@ var anonFn = function(args, body) {
 var thunk = function(value) {
   return {
     type: 'CallExpression',
-    callee: runtime_DOT_('Thunk'),
+    callee: getMembers('Thunk'),
     arguments: [
       anonFn([], [
         {
@@ -80,10 +73,10 @@ var declarations = function(decls) {
     }),
     kind: 'var'
   };
-}
+};
 
 module.exports = {
-  runtime_DOT_: runtime_DOT_,
+  getMembers: getMembers,
   anonFn: anonFn,
   thunk: thunk,
   declarations: declarations

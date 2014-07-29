@@ -1,22 +1,19 @@
-var prelude = require('../prelude.js');
+var prelude = require('../prelude');
 var preludeImports = Object.keys(prelude).map(function(str) {
   return { type: 'Identifier', name: str };
 });
 
-var idCounter = 0;
-function uniqueId() {
-  return '__' + idCounter++;
-}
+var uniqueId = require('./ast').uniqueId;
 
 // Descend into the values named in [val]
-function only(val) {
+function descendInto(val) {
   return function(ast) {
     val.forEach(function(k) {
       var subItems = ast[k];
       if (Array.isArray(subItems))
-        ast[k] = desugarAll(subItems);
+        ast[k] = desugar(subItems);
       else
-        ast[k] = desugar(subItems)
+        ast[k] = desugar(subItems);
     });
 
     return ast;
@@ -37,18 +34,14 @@ function identifierify(string) {
     .replace('=', '_EQ_')
     .replace('!', '_EXCLAM_')
     .replace('|', '_BAR_')
-    .replace('&', '_AND_'));
+    .replace('&', '_AND_')
+    .replace('.', '_DOT_'));
 }
 
 var desugarers = {
   Program: function(ast) {
-    function toIdentifier(string) {
-      return {
-        type: 'Identifier',
-        name: string
-      };
-    }
-    // Add a new import for prelude
+    // Add a new import for prelude if prelude isn't explicitly
+    // imported somewhere else.
     var explicitPrelude = ast.imports.some(function(imprt) {
       return imprt.target.value === 'myst/prelude';
     });
@@ -62,61 +55,52 @@ var desugarers = {
       });
     }
 
+    // Desugar and return a new program!
     return {
       type: 'Program',
-      imports: desugarAll(ast.imports),
-      declarations: desugarAll(ast.declarations),
+      imports: desugar(ast.imports),
+      declarations: desugar(ast.declarations),
       loc: ast.loc
     };
   },
 
   Import: function(ast) {
-    ast.as = ast.as || {
-      type: 'Identifier',
-      name: uniqueId()
-    }; // Ensure that _as_ is set.
+    ast.as = ast.as || uniqueId(); // Ensure that _as_ is set.
 
     return ast;
   },
 
-  Declaration: only(['value']),
+  Declaration: descendInto(['value']),
 
-  Literal: only([]),
+  Literal: descendInto([]),
 
-  Identifier: only([]),
+  Identifier: descendInto([]),
 
   Function: function(ast) {
-    // Replace all placeholders with valid identifiers
-    // Hopefully they don't conflict somehow
-
+    // In a function signature, you can discard variables with placeholders,
+    // give them valid names such that javascript won't complain
     ast.params = ast.params.map(function(param) {
       if (param.type === 'Placeholder') {
-        return {
-          type: 'Identifier',
-          name: uniqueId(),
-          loc: param.loc
-        };
+        return uniqueId(param.loc);
       } else {
         return param;
       }
     });
-    ast.body = desugar(ast.body);
 
+    ast.body = desugar(ast.body);
     return ast;
   },
 
-  FunctionBody: only(['declarations', 'returns']),
+  FunctionBody: descendInto(['declarations', 'returns']),
 
   Invocation: function(ast) {
+    // Wrap functions for partial applications with _ placeholders
     if (ast.arguments.some(function(arg) { return arg.type === 'Placeholder'; })) {
       var wrapperParams = [];
+
       ast.arguments = ast.arguments.map(function(argument) {
         if (argument.type === 'Placeholder') {
-          var newId = {
-            type: 'Identifier',
-            name: uniqueId(),
-            loc: argument.loc
-          };
+          var newId = uniqueId(argument.loc);
           wrapperParams.push(newId);
           return newId;
         } else {
@@ -135,7 +119,7 @@ var desugarers = {
       });
     } else {
       ast.callee = desugar(ast.callee);
-      ast.arguments = desugarAll(ast.arguments);
+      ast.arguments = desugar(ast.arguments);
       return ast;
     }
   },
@@ -164,7 +148,6 @@ var desugarers = {
         if (last.type === 'Declaration') {
           declarations.unshift(last);
         } else if (last.type === 'Action' || last.type === 'Bind') {
-          // Get the expression
           var action = last.value;
           var target = last.target || {type: 'Placeholder'};
           if (expr) {
@@ -173,8 +156,7 @@ var desugarers = {
               callee: {
                 type: 'Member',
                 object: ast.monad,
-                property: {type: 'Identifier', name: 'bind'},
-                op: '.'
+                property: {type: 'Identifier', name: 'bind'}
               },
               arguments: [
                 action,
@@ -195,107 +177,36 @@ var desugarers = {
             expr = action;
           }
         }
-          
+
       }
 
       if (expr === null)
         throw new Error('do blocks must contain at least one non-declaration element');
-      // Consume all declarations off of the end of the list - they have no effect
 
       return desugar(expr);
     }
   },
 
+  // This is a bit ugly - we need to handle transforming dereferencing
+  // statements into the correct operation
   Member: function(ast) {
     // Recurse for previous members
-    var object = desugar(ast.object);
-
-    if (ast.op === '::') {
-      var action = {
-        type: 'Invocation',
-        callee: {type: 'Identifier', name: 'derefM'},
-        arguments: [
-          {type: 'Placeholder'},
-          {
-            type: 'Literal',
-            value: ast.property.name
-          }
-        ]
-      };
-
-      if (object.__io) {
-        return desugar({
-          type: 'Invocation',
-          callee: {type: 'Identifier', name: 'bind'},
-          arguments: [
-            object,
-            action
-          ],
-          __io: true
-        });
-      } else {
-        return desugar({
-          type: 'Invocation',
-          callee: action,
-          arguments: [object],
-          __io: true
-        });
-      }
-    } else if (ast.op === '.') {
-      if (object.__io) { // XXX: Make this less disgusting
-        var id = {type: 'Identifier', name: uniqueId()};
-        return desugar({
-          type: 'Invocation',
-          callee: {type: 'Identifier', name: 'bind'},
-          arguments: [
-            object,
-            {
-              type: 'Function',
-              params: [id],
-              body: {
-                type: 'FunctionBody',
-                declarations: [],
-                returns: {
-                  type: 'Invocation',
-                  callee: {type: 'Identifier', name: 'unit'},
-                  arguments: [
-                    {
-                      type: 'Invocation',
-                      callee: {type: 'Identifier', name: 'deref'},
-                      arguments: [
-                        id,
-                        {
-                          type: 'Literal',
-                          value: ast.property.name
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          ],
-          __io: true
-        });
-      } else {
-        return desugar({
-          type: 'Invocation',
-          callee: {type: 'Identifier', name: 'deref'},
-          arguments: [
-            object,
-            {
-              type: 'Literal',
-              value: ast.property.name
-            }
-          ],
-          __io: false
-        });
-      }
-    }
+    return desugar({
+      type: 'Invocation',
+      callee: { type: 'Identifier', name: 'get' },
+      arguments: [
+        ast.object,
+        {
+          type: 'Literal',
+          value: ast.property.name
+        }
+      ]
+    });
   },
 
+  // Operators are just functions
   BinaryOperator: function(ast) {
-    return {
+    return desugar({
       type: 'Invocation',
       callee: {
         type: 'Identifier',
@@ -303,11 +214,11 @@ var desugarers = {
       },
       arguments: [ast.left, ast.right],
       loc: ast.loc
-    };
+    });
   },
 
   UnaryOperator: function(ast) {
-    return {
+    return desugar({
       type: 'Invocation',
       callee: {
         type: 'Identifier',
@@ -315,19 +226,20 @@ var desugarers = {
       },
       arguments: ast.arguments,
       loc: ast.loc
-    };
+    });
   }
 };
 
 function desugar(ast) {
+  if (Array.isArray(ast)) // Desugar every element of an array
+    return ast.map(desugar);
+
   if (! desugarers.hasOwnProperty(ast.type))
-    throw new Error('No desugarer for type: ' + ast.type)
+    throw new Error('No desugarer for type: ' + ast.type + ' on node: ' + ast);
 
-  return desugarers[ast.type](ast);
-}
-
-function desugarAll(asts) {
-  return asts.map(desugar);
+  var x = desugarers[ast.type](ast);
+  console.log(x);
+  return x;
 }
 
 module.exports = {
