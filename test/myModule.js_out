@@ -1,5 +1,5 @@
 (function () {
-    var __4 = require('myst/runtime'), IO = __4.IO, Thunk = __4.Thunk, Pure = __4.Pure, call = __4.call, force = __4.force, doIO = __4.doIO;
+    var __6 = require('myst/runtime'), IO = __6.IO, Thunk = __6.Thunk, Pure = __6.Pure, call = __6.call, force = __6.force, forceJS = __6.forceJS, MystObj = __6.MystObj, doIO = __6.doIO;
     var trace = Thunk(function () {
             return Pure(function (m, y) {
                 return call(unsafePerformIO, call(call(get, IO, 'bind'), call(call(get, console, 'log'), m, y), Pure(function (__1) {
@@ -10,17 +10,27 @@
             return Pure(function (x) {
                 return call(iff, call(_LT__EQ_, x, 0), 1, call(_TIMES_, x, call(fact, call(_MINUS_, x, 1))));
             });
+        }), test = Thunk(function () {
+            return call(arr, 'Hello', 'World', 'This', 'is');
+        }), test2 = Thunk(function () {
+            return call(obj, 'Hello', call(_MINUS_, 3, 5), call(_PLUS_, 5, 3), 'woo');
         }), main = Thunk(function () {
-            return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'Hello World!'), Pure(function (__2) {
-                return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'This is a pretty cool place!'), Pure(function (__3) {
-                    return call(call(get, console, 'log'), call(fact, 5));
+            return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test), Pure(function (__2) {
+                return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test2), Pure(function (__3) {
+                    return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'Hello World!'), Pure(function (__4) {
+                        return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'This is a pretty cool place!'), Pure(function (__5) {
+                            return call(call(get, console, 'log'), call(fact, 5));
+                        }));
+                    }));
                 }));
             }));
         });
     module.exports = {
         trace: trace,
         fact: fact,
+        test: test,
+        test2: test2,
         main: main
     };
-    var __0 = require('myst/prelude'), iff = __0.iff, get = __0.get, unsafePerformIO = __0.unsafePerformIO, _PLUS_ = __0._PLUS_, _MINUS_ = __0._MINUS_, _TIMES_ = __0._TIMES_, _SLASH_ = __0._SLASH_, _MODULO_ = __0._MODULO_, _EQ__EQ_ = __0._EQ__EQ_, _EXCLAM__EQ_ = __0._EXCLAM__EQ_, _LT_ = __0._LT_, _GT_ = __0._GT_, _LT__EQ_ = __0._LT__EQ_, _GT__EQ_ = __0._GT__EQ_, _BAR__BAR_ = __0._BAR__BAR_, _AND__AND_ = __0._AND__AND_, _EXCLAM_ = __0._EXCLAM_, _COLON_ = __0._COLON_;
+    var __0 = require('myst/prelude'), iff = __0.iff, get = __0.get, unsafePerformIO = __0.unsafePerformIO, obj = __0.obj, arr = __0.arr, _PLUS_ = __0._PLUS_, _MINUS_ = __0._MINUS_, _TIMES_ = __0._TIMES_, _SLASH_ = __0._SLASH_, _MODULO_ = __0._MODULO_, _EQ__EQ_ = __0._EQ__EQ_, _EXCLAM__EQ_ = __0._EXCLAM__EQ_, _LT_ = __0._LT_, _GT_ = __0._GT_, _LT__EQ_ = __0._LT__EQ_, _GT__EQ_ = __0._GT__EQ_, _BAR__BAR_ = __0._BAR__BAR_, _AND__AND_ = __0._AND__AND_, _EXCLAM_ = __0._EXCLAM_, _COLON_ = __0._COLON_;
 }());

@@ -14,14 +14,14 @@ function process_js() {
 }
 
 function change() {
-    while read -d "" event; do
+	while read -d "" event; do
 		if echo "$event" | grep -q 'jison$'; then
 			process_jison "$event"
 		else if echo "$event" | grep -q 'js$'; then
 			process_js "$event"
 		else if echo "$event" | grep -q 'myst$'; then
 			process_js "$event"
-		fi fi
+		fi fi fi
 	done
 }
 

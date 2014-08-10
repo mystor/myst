@@ -11,7 +11,15 @@ fact = fn x {
     (x * fact (x - 1))
 };
 
+test = arr "Hello" "World" "This" "is";
+
+test2 = obj "Hello" (3 - 5) (5 + 3) "woo";
+
+test3 = { Hello: "There!", Whats: 9+9 };
+
 main = do IO {
+  console.log test;
+  console.log test2;
   console.log "Hello World!";
   console.log "This is a pretty cool place!";
   console.log (fact 5);

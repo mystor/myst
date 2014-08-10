@@ -1,15 +1,21 @@
+var mori = require('mori');
 var $$RUNTIME$$ = require('./runtime.js');
 var IO = $$RUNTIME$$.IO;
 var Pure = $$RUNTIME$$.Pure;
 var force = $$RUNTIME$$.force;
+var forceJS = $$RUNTIME$$.forceJS;
 var Thunk = $$RUNTIME$$.Thunk;
 var call = $$RUNTIME$$.call;
+var MystObj = $$RUNTIME$$.MystObj;
 
+var slice = Array.prototype.slice;
 
 var get = Pure(function(obj, prop) {
   var o = force(obj);
-
-  return o[prop];
+  if (mori.is_collection(o))
+    return mori.get(o, prop);
+  else
+    return o[prop];
 });
 
 var iff = Pure(function(cond, consequent, alternative) {
@@ -24,7 +30,35 @@ var unsafePerformIO = Pure(function(action) {
   return $$RUNTIME$$.doIO(action);
 });
 
+var obj = Pure(function() {
+  // Keys must be strict strings
+  var args = slice.call(arguments);
+  for (var i = 0; i < arguments.length; i += 2) {
+    args[i] = '' + forceJS(args[i]); // Force the key into a string
+  }
+
+  return MystObj(mori.hash_map.apply(null, args));
+});
+
+var arr = Pure(function() {
+  return MystObj(mori.vector.apply(null, arguments));
+});
+
+function NumOp(fn) {
+  return Pure(function() {
+    var args = new Array(arguments.length);
+    for (var i = 0; i < arguments.length; i++) {
+      args[i] = force(arguments[i]);
+      if (typeof args[i] !== 'number' || args[i] !== args[i])
+        throw new Error('Argument ' + i + ' to NumOp is not a number, instead: ' + args[i]);
+    }
+
+    return fn.apply(this, args);
+  });
+}
+
 /* add */
+var _PLUS_ = NumOp(function(a, b) { return a + b; });
 var _PLUS_ = Pure(function(a, b) {
   var a = force(a), b = force(b);
   if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
@@ -136,6 +170,8 @@ module.exports = {
   iff: iff,
   get: get,
   unsafePerformIO: unsafePerformIO,
+  obj: obj,
+  arr: arr,
   _PLUS_: _PLUS_,
   _MINUS_: _MINUS_,
   _TIMES_: _TIMES_,

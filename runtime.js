@@ -1,3 +1,4 @@
+var mori = require('mori');
 var slice = [].slice;
 
 /*
@@ -12,6 +13,18 @@ function force(thunk) {
 
 function forceJS(thunk) {
   var forced = force(thunk);
+
+  if (isMystObj(forced)) {
+    if (mori.is_map(forced)) {
+      return mori.reduce_kv(function(acc, k, v) {
+        acc[k] = forceJS(v);
+        return acc;
+      }, {}, forced);
+    } else {
+      return mori.clj_to_js(mori.map(forceJS, forced));
+    }
+  }
+
   return forced; // At some point make this fix more things
 }
 
@@ -27,6 +40,10 @@ function isIO(object) {
   return typeof object === 'function' && (object.$$io || (! object.$$pure && ! object.$$thunk));
 }
 
+function isMystObj(object) {
+  return mori.is_collection(object) && object.$$mystobj === true;
+}
+
 /*
  * Functions contain values which will be evaluated at some point in the future
  */
@@ -34,6 +51,9 @@ var Thunk = function(value) {
   var forced = false;
 
   var thunk = function() {
+    // The main thunk function is designed to be callable from
+    // JavaScript, and attempts to force the object, and then apply
+    // any arguments (and call any IO actions)
     var args = slice.call(arguments);
 
     var forced = force(thunk);
@@ -147,23 +167,30 @@ var call = function(fn) {
     // If the function is marked as "pure", we can call it whenever we
     // want, so we call it when it is needed.
     return Thunk(function() {
-      var res = fn.impl.apply(null, args);
-      return res;
+      return fn.impl.apply(null, args);
     });
   } else {
     // If the function isn't marked as "pure", we make an IO action
     // which will call the function with the given arguments when invoked
     return IO(function() {
-      return fn.apply(null, args.map(forceJS)); // TODO: The arguments need to be made js-compatible
+      return fn.apply(null, args.map(forceJS));
     });
   }
 };
 
+// Basic Data struct
+var MystObj = function(object) {
+  object.$$mystobj = true;
+  return object;
+};
+
 module.exports = {
-  IO: IO,       // A constructor for an IO action
-  Thunk: Thunk, // Create a lazy thunk
-  Pure: Pure,   // Mark a function as being pure (all functions in myst are pure)
-  call: call,   // Call a pure function, returning a lazy thunk
-  force: force, // Force a thunk into whnf
-  doIO: doIO    // Perform an IO action
+  IO: IO,           // A constructor for an IO action
+  Thunk: Thunk,     // Create a lazy thunk
+  Pure: Pure,       // Mark a function as being pure (all functions in myst are pure)
+  call: call,       // Call a pure function, returning a lazy thunk
+  force: force,     // Force a thunk into whnf
+  forceJS: forceJS, // Force thunk into a valid JS object
+  MystObj: MystObj,
+  doIO: doIO        // Perform an IO action
 };
