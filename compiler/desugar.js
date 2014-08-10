@@ -227,6 +227,43 @@ var desugarers = {
       arguments: ast.arguments,
       loc: ast.loc
     });
+  },
+
+  Object: function(ast) {
+    var args = [];
+    ast.properties.forEach(function(prop) {
+      if (prop.key.type === 'Identifier')
+        args.push({
+          type: 'Literal',
+          value: prop.key.name,
+          loc: prop.key.loc
+        });
+      else
+        args.push(prop.key);
+      args.push(prop.value);
+    });
+
+    return desugar({
+      type: 'Invocation',
+      callee: {
+        type: 'Identifier',
+        name: 'obj'
+      },
+      arguments: args,
+      loc: ast.loc
+    });
+  },
+
+  Array: function(ast) {
+    return desugar({
+      type: 'Invocation',
+      callee: {
+        type: 'Identifier',
+        name: 'arr'
+      },
+      arguments: ast.elements,
+      loc: ast.loc
+    });
   }
 };
 

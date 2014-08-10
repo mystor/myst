@@ -17,9 +17,13 @@ test2 = obj "Hello" (3 - 5) (5 + 3) "woo";
 
 test3 = { Hello: "There!", Whats: 9+9 };
 
+test4 = ["Hello", "Again"];
+
 main = do IO {
   console.log test;
   console.log test2;
+  console.log test3;
+  console.log test4;
   console.log "Hello World!";
   console.log "This is a pretty cool place!";
   console.log (fact 5);
