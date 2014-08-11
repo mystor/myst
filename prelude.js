@@ -1,12 +1,13 @@
 var mori = require('mori');
-var $$RUNTIME$$ = require('./runtime.js');
-var IO = $$RUNTIME$$.IO;
-var Pure = $$RUNTIME$$.Pure;
-var force = $$RUNTIME$$.force;
-var forceJS = $$RUNTIME$$.forceJS;
-var Thunk = $$RUNTIME$$.Thunk;
-var call = $$RUNTIME$$.call;
-var MystObj = $$RUNTIME$$.MystObj;
+
+var rt = require('./runtime.js');
+var IO = rt.IO;
+var Pure = rt.Pure;
+var force = rt.force;
+var forceJS = rt.forceJS;
+var Thunk = rt.Thunk;
+var call = rt.call;
+var MystObj = rt.MystObj;
 
 var slice = Array.prototype.slice;
 
@@ -27,7 +28,7 @@ var iff = Pure(function(cond, consequent, alternative) {
 });
 
 var unsafePerformIO = Pure(function(action) {
-  return $$RUNTIME$$.doIO(action);
+  return rt.doIO(action);
 });
 
 var obj = Pure(function() {
@@ -59,49 +60,18 @@ function NumOp(fn) {
 
 /* add */
 var _PLUS_ = NumOp(function(a, b) { return a + b; });
-var _PLUS_ = Pure(function(a, b) {
-  var a = force(a), b = force(b);
-  if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
-    throw new Error('Both arguments to + operator must be numbers');
-
-  return a + b;
-});
 
 /* minus */
-var _MINUS_ = Pure(function _MINUS_(a, b) {
-  var a = force(a), b = force(b);
-  if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
-    throw new Error('Both arguments to - operator must be numbers');
-
-  return a - b;
-});
+var _MINUS_ = NumOp(function(a, b) { return a - b; });
 
 /* multiplication */
-var _TIMES_ = Pure(function(a, b) {
-  var a = force(a), b = force(b);
-  if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
-    throw new Error('Both arguments to * operator must be numbers');
-
-  return a * b;
-});
+var _TIMES_ = NumOp(function(a, b) { return a * b; });
 
 /* division */
-var _SLASH_ = Pure(function(a, b) {
-  var a = force(a), b = force(b);
-  if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
-    throw new Error('Both arguments to / operator must be numbers');
-
-  return a / b;
-});
+var _SLASH_ = NumOp(function(a, b) { return a / b; });
 
 /* modulo */
-var _MODULO_ = Pure(function(a, b) {
-  var a = force(a), b = force(b);
-  if (typeof a !== 'number' || typeof b !== 'number' || a !== a || b !== b)
-    throw new Error('Both arguments to % operator must be numbers');
-
-  return a % b;
-});
+var _MODULO_ = NumOp(function(a, b) { return a % b; });
 
 /* equals */
 var _EQ__EQ_ = Pure(function(a, b) {
@@ -126,7 +96,7 @@ var _GT_ = Pure(function(a, b) {
 });
 
 /* less than or equals */
-var _LT__EQ_ = Pure(function _LT__EQ_(a, b) {
+var _LT__EQ_ = Pure(function(a, b) {
   return force(a) <= force(b);
 });
 

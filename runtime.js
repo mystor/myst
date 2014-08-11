@@ -191,6 +191,6 @@ module.exports = {
   call: call,       // Call a pure function, returning a lazy thunk
   force: force,     // Force a thunk into whnf
   forceJS: forceJS, // Force thunk into a valid JS object
-  MystObj: MystObj,
+  MystObj: MystObj, // Mark an object as being a valid MystObj
   doIO: doIO        // Perform an IO action
 };
