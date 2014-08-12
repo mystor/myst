@@ -19,6 +19,10 @@
 "true"                     {return 'TRUE';}
 "false"                    {return 'FALSE';}
 
+"if"                       {return 'IF';}
+"then"                     {return 'THEN';}
+"else"                     {return 'ELSE';}
+
 /* BLOCK DELIMITERS */
 "{"                        {return '{';}
 "}"                        {return '}';}
@@ -248,6 +252,8 @@ obj_properties
 obj_literal
     : '{' obj_properties '}'
         { $$ = {type: 'Object', properties: $2, loc: @0}; }
+    | '{' '}'
+        { $$ = {type: 'Object', properties: [], loc: @0}; }
     ;
 
 /* Array Literals */
@@ -282,6 +288,15 @@ invocation
         { $$ = {type: 'Invocation', callee: $1, arguments: $2, loc: @0}; }
     ;
 
+/* If Expression */
+
+if
+    /* : IF expression THEN expression
+        { $$ = {type: 'Operator', callee: '_IF_', arguments: [$2, $4], loc: @0}; } */
+    : IF expression THEN expression ELSE expression
+        { $$ = {type: 'Operator', callee: '_IF_', arguments: [$2, $4, $6], loc: @0}; }
+    ;
+
 /* Expressions */
 
 prim_expression
@@ -299,6 +314,7 @@ prim_expression
 expression
     : prim_expression { $$ = $1; }
     | invocation { $$ = $1; }
+    | if { $$ = $1; }
     | '-' prim_expression %prec NEG
         { $$ = {type: 'Operator', callee: '_NEG_', arguments: [$2], loc: @0}; }
     | expression '+'  expression

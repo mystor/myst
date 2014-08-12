@@ -2,10 +2,12 @@
     var __6 = require('myst/runtime'), IO = __6.IO, Thunk = __6.Thunk, Pure = __6.Pure, Weak = __6.Weak, Numeric = __6.Numeric, call = __6.call, force = __6.force, forceJS = __6.forceJS, MystObj = __6.MystObj, doIO = __6.doIO;
     var trace = Thunk(function () {
             return Pure(function (m, y) {
-                return call(unsafePerformIO, call(call(get, IO, 'bind'), call(call(get, console, 'log'), m, y), Pure(function (__1) {
+                return call(_UNSAFELY_, call(call(get, IO, 'bind'), call(call(get, console, 'log'), m, y), Pure(function (__1) {
                     return call(call(get, IO, 'return'), y);
                 })));
             });
+        }), MainPage = Thunk(function () {
+            return call(_UNSAFELY_, call(call(get, React, 'createClass'), call(obj, 'render', call(_UNSAFELY_, call(call(get, call(get, React, 'DOM'), 'span'), call(obj), 'Hello')))));
         }), fact = Thunk(function () {
             return Pure(function (x) {
                 return call(_IF_, call(_LT_EQ_, x, 0), 1, call(_MULT_, x, call(fact, call(_SUB_, x, 1))));
@@ -19,7 +21,7 @@
                 return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test2), Pure(function (__3) {
                     return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'Hello World!'), Pure(function (__4) {
                         return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'This is a pretty cool place!'), Pure(function (__5) {
-                            return call(call(get, console, 'log'), call(fact, 6));
+                            return call(call(get, console, 'log'), call(fact, 5));
                         }));
                     }));
                 }));
@@ -27,6 +29,7 @@
         });
     module.exports = {
         trace: trace,
+        MainPage: MainPage,
         fact: fact,
         test1: test1,
         test2: test2,

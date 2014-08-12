@@ -213,31 +213,6 @@ var desugarers = {
     });
   },
 
-  // // Operators are just functions
-  // BinaryOperator: function(ast) {
-  //   return desugar({
-  //     type: 'Invocation',
-  //     callee: {
-  //       type: 'Identifier',
-  //       name: identifierify(ast.op)
-  //     },
-  //     arguments: [ast.left, ast.right],
-  //     loc: ast.loc
-  //   });
-  // },
-
-  // UnaryOperator: function(ast) {
-  //   return desugar({
-  //     type: 'Invocation',
-  //     callee: {
-  //       type: 'Identifier',
-  //       name: identifierify(ast.op)
-  //     },
-  //     arguments: ast.arguments,
-  //     loc: ast.loc
-  //   });
-  // },
-
   Object: function(ast) {
     var args = [];
     ast.properties.forEach(function(prop) {
@@ -284,7 +259,6 @@ function desugar(ast) {
     throw new Error('No desugarer for type: ' + ast.type + ' on node: ' + ast);
 
   var x = desugarers[ast.type](ast);
-  console.log(x);
   return x;
 }
 
