@@ -1,5 +1,5 @@
 (function () {
-    var __8 = require('myst/runtime'), IO = __8.IO, Thunk = __8.Thunk, Pure = __8.Pure, call = __8.call, force = __8.force, forceJS = __8.forceJS, MystObj = __8.MystObj, doIO = __8.doIO;
+    var __6 = require('myst/runtime'), IO = __6.IO, Thunk = __6.Thunk, Pure = __6.Pure, Weak = __6.Weak, Numeric = __6.Numeric, call = __6.call, force = __6.force, forceJS = __6.forceJS, MystObj = __6.MystObj, doIO = __6.doIO;
     var trace = Thunk(function () {
             return Pure(function (m, y) {
                 return call(unsafePerformIO, call(call(get, IO, 'bind'), call(call(get, console, 'log'), m, y), Pure(function (__1) {
@@ -8,26 +8,18 @@
             });
         }), fact = Thunk(function () {
             return Pure(function (x) {
-                return call(iff, call(_LT__EQ_, x, 0), 1, call(_TIMES_, x, call(fact, call(_MINUS_, x, 1))));
+                return call(_IF_, call(_LT_EQ_, x, 0), 1, call(_MULT_, x, call(fact, call(_SUB_, x, 1))));
             });
-        }), test = Thunk(function () {
-            return call(arr, 'Hello', 'World', 'This', 'is');
+        }), test1 = Thunk(function () {
+            return call(obj, 'Hello', 'There!', 'Whats', call(_ADD_, 9, 9));
         }), test2 = Thunk(function () {
-            return call(obj, 'Hello', call(_MINUS_, 3, 5), call(_PLUS_, 5, 3), 'woo');
-        }), test3 = Thunk(function () {
-            return call(obj, 'Hello', 'There!', 'Whats', call(_PLUS_, 9, 9));
-        }), test4 = Thunk(function () {
-            return call(arr, 'Hello', 'Again');
+            return call(arr, 'Hello', 'Again', call(_ADD_, call(_ADD_, 9, 3), 8));
         }), main = Thunk(function () {
-            return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test), Pure(function (__2) {
+            return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test1), Pure(function (__2) {
                 return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test2), Pure(function (__3) {
-                    return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test3), Pure(function (__4) {
-                        return call(call(get, IO, 'bind'), call(call(get, console, 'log'), test4), Pure(function (__5) {
-                            return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'Hello World!'), Pure(function (__6) {
-                                return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'This is a pretty cool place!'), Pure(function (__7) {
-                                    return call(call(get, console, 'log'), call(fact, 5));
-                                }));
-                            }));
+                    return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'Hello World!'), Pure(function (__4) {
+                        return call(call(get, IO, 'bind'), call(call(get, console, 'log'), 'This is a pretty cool place!'), Pure(function (__5) {
+                            return call(call(get, console, 'log'), call(fact, 6));
                         }));
                     }));
                 }));
@@ -36,11 +28,9 @@
     module.exports = {
         trace: trace,
         fact: fact,
-        test: test,
+        test1: test1,
         test2: test2,
-        test3: test3,
-        test4: test4,
         main: main
     };
-    var __0 = require('myst/prelude'), iff = __0.iff, get = __0.get, unsafePerformIO = __0.unsafePerformIO, obj = __0.obj, arr = __0.arr, _PLUS_ = __0._PLUS_, _MINUS_ = __0._MINUS_, _TIMES_ = __0._TIMES_, _SLASH_ = __0._SLASH_, _MODULO_ = __0._MODULO_, _EQ__EQ_ = __0._EQ__EQ_, _EXCLAM__EQ_ = __0._EXCLAM__EQ_, _LT_ = __0._LT_, _GT_ = __0._GT_, _LT__EQ_ = __0._LT__EQ_, _GT__EQ_ = __0._GT__EQ_, _BAR__BAR_ = __0._BAR__BAR_, _AND__AND_ = __0._AND__AND_, _EXCLAM_ = __0._EXCLAM_, _COLON_ = __0._COLON_;
+    var __0 = require('myst/prelude'), get = __0.get, unsafePerformIO = __0.unsafePerformIO, obj = __0.obj, arr = __0.arr, _IF_ = __0._IF_, _ADD_ = __0._ADD_, _SUB_ = __0._SUB_, _MULT_ = __0._MULT_, _DIV_ = __0._DIV_, _MOD_ = __0._MOD_, _EQUALS_ = __0._EQUALS_, _NOT_EQUALS_ = __0._NOT_EQUALS_, _LT_ = __0._LT_, _GT_ = __0._GT_, _LT_EQ_ = __0._LT_EQ_, _GT_EQ_ = __0._GT_EQ_, _OR_ = __0._OR_, _AND_ = __0._AND_, _NOT_ = __0._NOT_;
 }());

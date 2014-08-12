@@ -3,67 +3,78 @@
 %lex
 
 %%
-"//"[^\n]*"\n"          {/* Ignore single-line comments */}
-"/*"([^*]|"*"[^/])"*/"  {/* Ignore multi-line comments */}
-\s+                     {/* Ignore Whitespace */}
-/* CODE BLOCKS */
-"fn"                    {return 'FUNCTION';}
-"do"                    {return 'DO';}
+"//"[^\n]*"\n"             {/* Ignore single-line comments */}
+"/*"([^*]|"*"[^/])"*/"     {/* Ignore multi-line comments */}
+\s+                        {/* Ignore Whitespace */}
 
-"import"                {return 'IMPORT';}
-"from"                  {return 'FROM';}
-"as"                    {return 'AS';}
+/* CODE BLOCKS */
+"fn"                       {return 'FUNCTION';}
+"do"                       {return 'DO';}
+
+"import"                   {return 'IMPORT';}
+"from"                     {return 'FROM';}
+"as"                       {return 'AS';}
 
 /* Special Values */
-"true"                  {return 'TRUE';}
-"false"                 {return 'FALSE';}
-/* BLOCK DELIMITERS */
-"{"                     {return '{';}
-"}"                     {return '}';}
-"["                     {return '[';}
-"]"                     {return ']';}
-"("                     {return '(';}
-")"                     {return ')';}
+"true"                     {return 'TRUE';}
+"false"                    {return 'FALSE';}
 
-"::"                    {return '::';}
-"<-"                    {return '<-';} /* Monadic bind in do block */
+/* BLOCK DELIMITERS */
+"{"                        {return '{';}
+"}"                        {return '}';}
+"["                        {return '[';}
+"]"                        {return ']';}
+"("                        {return '(';}
+")"                        {return ')';}
+
+"<-"                       {return '<-';} /* Monadic bind in do block */
 
 /* OPERATORS */
-":"                     {return ':';}
-"+"                     {return '+';}
-"-"                     {return '-';} /* Binary & Unary */
-"*"                     {return '*';}
-"/"                     {return '/';}
-"%"                     {return '%';}
+"++"                       {return '++';}
 
-"=="                    {return '==';}
-"!="                    {return '!=';}
-"<="                    {return '<=';}
-">="                    {return '>=';}
-"<"                     {return '<';}
-">"                     {return '>';}
+"+"                        {return '+';}
+"-"                        {return '-';} /* Binary & Unary */
+"*"                        {return '*';}
+"/"                        {return '/';}
+"%"                        {return '%';}
 
-"||"                    {return '||';}
-"&&"                    {return '&&';}
+">>"                       {return '>>';}
+"<<"                       {return '<<';}
+"|>"                       {return '|>';}
+"<|"                       {return '<|';}
 
-"!"                     {return '!';} /* Unary */
+"=="                       {return '==';}
+"!="                       {return '!=';}
+"<="                       {return '<=';}
+">="                       {return '>=';}
+"<"                        {return '<';}
+">"                        {return '>';}
 
-"="                     {return '=';}
+"||"                       {return '||';}
+"&&"                       {return '&&';}
+
+"&!"                       {return '&!';}
+
+"!"                        {return '!';} /* Unary */
+
+"="                        {return '=';}
+
+":"                        {return ':';}
 
 /* match SEPERATOR */
-","                     {return ',';}
+","                        {return ',';}
 
-"."                     {return '.';}
+"."                        {return '.';}
 
-";"                     {return ';';} /* Statement Seperator */
-"_"                     {return '_';}
+";"                        {return ';';} /* Statement Seperator */
+"_"                        {return '_';}
 
-"\""(\\\"|[^"])*"\""    {return 'STRING';}
-"'"(\\\'|[^'])*"'"      {return 'STRING';}
+"\""(\\\"|[^"])*"\""       {return 'STRING';}
+"'"(\\\'|[^'])*"'"         {return 'STRING';}
 
-[0-9]+("."[0-9]+)?\b    {return 'NUMBER';}
-[a-zA-Z][a-zA-Z_0-9]*\b {return 'IDENTIFIER';}
-<<EOF>>                 {return 'EOF';}
+[0-9]+("."[0-9]+)?\b       {return 'NUMBER';}
+[$a-zA-Z_][$a-zA-Z0-9_]*\b {return 'IDENTIFIER';}
+<<EOF>>                    {return 'EOF';}
 
 /lex
 
@@ -72,13 +83,14 @@
 %right '&&'
 %nonassoc '==' '!=' '<' '>' '<=' '>='
 %right ':' '++'
-%left '+' '-' 
+%left '+' '-'
 %left '*' '/' '%'
-%right '!'
+%left '|>' '>>'
+%right '<|' '<<'
+%right '!' '&!'
 %left '.'
 %precedence NEG
 %left INVOCATION
-
 
 %start program
 
@@ -113,7 +125,7 @@ import_names
     | import_names ',' identifier
         { $$ = $1.slice(); $$.push($3); }
     ;
-    
+
 
 /* Primitives - I use eval here, as they are supposed to be the same as their JS counterparts */
 string
@@ -184,7 +196,7 @@ function_body
 function
     : FUNCTION match_list '{' function_body '}'
         { $$ = {type: 'Function', params: $2, body: $4, loc: @0}; }
-    ; 
+    ;
 
 /* "DO" block */
 
@@ -281,28 +293,48 @@ prim_expression
     | do { $$ = $1; }
     | function { $$ = $1; }
     | '!' prim_expression
-        { $$ = {type: 'UnaryOperator', argument: $2, op: $1, loc: @0}; }
+        { $$ = {type: 'Operator', callee: '_NOT_', arguments: [$2], loc: @0}; }
     ;
 
 expression
     : prim_expression { $$ = $1; }
     | invocation { $$ = $1; }
     | '-' prim_expression %prec NEG
-        { $$ = {type: 'UnaryOperator', argument: $2, op: $1, loc: @0}; }
-    | expression '+'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '-'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '*'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '/'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '%'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '==' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '!=' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '<'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '>'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '<=' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '>=' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '||' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression '&&' expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
-    | expression ':'  expression { $$ = {type: 'BinaryOperator', op: $2, left: $1, right: $3, loc: @0}; }
+        { $$ = {type: 'Operator', callee: '_NEG_', arguments: [$2], loc: @0}; }
+    | expression '+'  expression
+        { $$ = {type: 'Operator', callee: '_ADD_', arguments: [$1, $3], loc: @0}; }
+    | expression '-'  expression
+        { $$ = {type: 'Operator', callee: '_SUB_', arguments: [$1, $3], loc: @0}; }
+    | expression '*'  expression
+        { $$ = {type: 'Operator', callee: '_MULT_', arguments: [$1, $3], loc: @0}; }
+    | expression '/'  expression
+        { $$ = {type: 'Operator', callee: '_DIV_', arguments: [$1, $3], loc: @0}; }
+    | expression '%'  expression
+        { $$ = {type: 'Operator', callee: '_MOD_', arguments: [$1, $3], loc: @0}; }
+    | expression '==' expression
+        { $$ = {type: 'Operator', callee: '_EQUALS_', arguments: [$1, $3], loc: @0}; }
+    | expression '!=' expression
+        { $$ = {type: 'Operator', callee: '_NOT_EQUALS_', arguments: [$1, $3], loc: @0}; }
+    | expression '<'  expression
+        { $$ = {type: 'Operator', callee: '_LT_', arguments: [$1, $3], loc: @0}; }
+    | expression '>'  expression
+        { $$ = {type: 'Operator', callee: '_GT_', arguments: [$1, $3], loc: @0}; }
+    | expression '<=' expression
+        { $$ = {type: 'Operator', callee: '_LT_EQ_', arguments: [$1, $3], loc: @0}; }
+    | expression '>=' expression
+        { $$ = {type: 'Operator', callee: '_GT_EQ_', arguments: [$1, $3], loc: @0}; }
+    | expression '||' expression
+        { $$ = {type: 'Operator', callee: '_OR_', arguments: [$1, $3], loc: @0}; }
+    | expression '&&' expression
+        { $$ = {type: 'Operator', callee: '_AND_', arguments: [$1, $3], loc: @0}; }
+    | expression '>>' expression
+        { $$ = {type: 'Operator', callee: '_FWD_COMPOSE_', arguments: [$1, $3], loc: @0}; }
+    | expression '<<' expression
+        { $$ = {type: 'Operator', callee: '_BKWD_COMPOSE_', arguments: [$1, $3], loc: @0}; }
+    | expression '|>' expression
+        { $$ = {type: 'Operator', callee: '_FWD_PIPE_', arguments: [$1, $3], loc: @0}; }
+    | expression '<|' expression
+        { $$ = {type: 'Operator', callee: '_BKWD_PIPE_', arguments: [$1, $3], loc: @0}; }
+    | '&!' expression
+        { $$ = {type: 'Operator', callee: '_UNSAFELY_', arguments: [$2], loc: @0}; }
     ;
-
-

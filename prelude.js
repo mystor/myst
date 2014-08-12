@@ -8,6 +8,8 @@ var forceJS = rt.forceJS;
 var Thunk = rt.Thunk;
 var call = rt.call;
 var MystObj = rt.MystObj;
+var Numeric = rt.Numeric;
+var Weak = rt.Weak;
 
 var slice = Array.prototype.slice;
 
@@ -19,13 +21,6 @@ var get = Pure(function(obj, prop) {
     return o[prop];
 });
 
-var iff = Pure(function(cond, consequent, alternative) {
-  if (force(cond)) {
-    return consequent;
-  } else {
-    return alternative;
-  }
-});
 
 var unsafePerformIO = Pure(function(action) {
   return rt.doIO(action);
@@ -45,68 +40,63 @@ var arr = Pure(function() {
   return MystObj(mori.vector.apply(null, arguments));
 });
 
-function NumOp(fn) {
-  return Pure(function() {
-    var args = new Array(arguments.length);
-    for (var i = 0; i < arguments.length; i++) {
-      args[i] = force(arguments[i]);
-      if (typeof args[i] !== 'number' || args[i] !== args[i])
-        throw new Error('Argument ' + i + ' to NumOp is not a number, instead: ' + args[i]);
-    }
-
-    return fn.apply(this, args);
-  });
-}
+/* if */
+var _IF_ = Pure(function(cond, consequent, alternative) {
+  if (force(cond)) {
+    return consequent;
+  } else {
+    return alternative;
+  }
+});
 
 /* add */
-var _PLUS_ = NumOp(function(a, b) { return a + b; });
+var _ADD_ = Numeric(function(a, b) { return a + b; });
 
 /* minus */
-var _MINUS_ = NumOp(function(a, b) { return a - b; });
+var _SUB_ = Numeric(function(a, b) { return a - b; });
 
 /* multiplication */
-var _TIMES_ = NumOp(function(a, b) { return a * b; });
+var _MULT_ = Numeric(function(a, b) { return a * b; });
 
 /* division */
-var _SLASH_ = NumOp(function(a, b) { return a / b; });
+var _DIV_ = Numeric(function(a, b) { return a / b; });
 
 /* modulo */
-var _MODULO_ = NumOp(function(a, b) { return a % b; });
+var _MOD_ = Numeric(function(a, b) { return a % b; });
 
 /* equals */
-var _EQ__EQ_ = Pure(function(a, b) {
-  var a = force(a), b = force(b);
+var _EQUALS_ = Weak(function(a, b) {
   // TODO: Make immutable objects compare more deeply
   return a === b;
 });
 
 /* not equals */
-var _EXCLAM__EQ_ = Pure(function(a, b) {
+var _NOT_EQUALS_ = Pure(function(a, b) {
   return call(_EXCLAM_, call(_EQ__EQ_, a, b));
 });
 
 /* less than */
-var _LT_ = Pure(function(a, b) {
-  return force(a) < force(b);
+var _LT_ = Weak(function(a, b) {
+  return a < b;
 });
 
 /* greater than */
-var _GT_ = Pure(function(a, b) {
-  return force(a) > force(b);
+var _GT_ = Weak(function(a, b) {
+  return a > b;
 });
 
 /* less than or equals */
-var _LT__EQ_ = Pure(function(a, b) {
-  return force(a) <= force(b);
+var _LT_EQ_ = Weak(function(a, b) {
+  return a <= b;
 });
 
 /* greater than or equals */
-var _GT__EQ_ = Pure(function(a, b) {
-  return force(a) >= force(b);
+var _GT_EQ_ = Weak(function(a, b) {
+  return a >= b;
 });
 
 /* logical or */
-var _BAR__BAR_ = Pure(function(a, b) {
+var _OR_ = Pure(function(a, b) {
   var fa = force(a);
   if (fa) return fa;
 
@@ -114,7 +104,7 @@ var _BAR__BAR_ = Pure(function(a, b) {
 });
 
 /* logical or */
-var _AND__AND_ = Pure(function(a, b) {
+var _AND_ = Pure(function(a, b) {
   var fa = force(a);
   if (! fa) return fa;
 
@@ -122,39 +112,28 @@ var _AND__AND_ = Pure(function(a, b) {
 });
 
 /* not */
-var _EXCLAM_ = Pure(function(a) {
-  return ! force(a);
-});
-
-/* cons */
-var _COLON_ = Pure(function(a, b) {
-  if (! Array.isArray(b))
-    throw new Error('Second argument to : operator must be an array');
-
-  var nb = b.slice();
-  nb.unshift(a);
-  return nb;
+var _NOT_ = Weak(function(a) {
+  return ! a;
 });
 
 module.exports = {
-  iff: iff,
   get: get,
   unsafePerformIO: unsafePerformIO,
   obj: obj,
   arr: arr,
-  _PLUS_: _PLUS_,
-  _MINUS_: _MINUS_,
-  _TIMES_: _TIMES_,
-  _SLASH_: _SLASH_,
-  _MODULO_: _MODULO_,
-  _EQ__EQ_: _EQ__EQ_,
-  _EXCLAM__EQ_: _EXCLAM__EQ_,
+  _IF_: _IF_,
+  _ADD_: _ADD_,
+  _SUB_: _SUB_,
+  _MULT_: _MULT_,
+  _DIV_: _DIV_,
+  _MOD_: _MOD_,
+  _EQUALS_: _EQUALS_,
+  _NOT_EQUALS_: _NOT_EQUALS_,
   _LT_: _LT_,
   _GT_: _GT_,
-  _LT__EQ_: _LT__EQ_,
-  _GT__EQ_: _GT__EQ_,
-  _BAR__BAR_: _BAR__BAR_,
-  _AND__AND_: _AND__AND_,
-  _EXCLAM_: _EXCLAM_,
-  _COLON_: _COLON_
+  _LT_EQ_: _LT_EQ_,
+  _GT_EQ_: _GT_EQ_,
+  _OR_: _OR_,
+  _AND_: _AND_,
+  _NOT_: _NOT_
 };

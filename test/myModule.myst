@@ -6,25 +6,19 @@ trace = fn m y {
 };
 
 fact = fn x {
-  iff (x <= 0)
+  _IF_ (x <= 0)
     1
     (x * fact (x - 1))
 };
 
-test = arr "Hello" "World" "This" "is";
+test1 = { Hello: "There!", Whats: 9+9 };
 
-test2 = obj "Hello" (3 - 5) (5 + 3) "woo";
-
-test3 = { Hello: "There!", Whats: 9+9 };
-
-test4 = ["Hello", "Again"];
+test2 = ["Hello", "Again", 9+3+8];
 
 main = do IO {
-  console.log test;
+  console.log test1;
   console.log test2;
-  console.log test3;
-  console.log test4;
   console.log "Hello World!";
   console.log "This is a pretty cool place!";
-  console.log (fact 5);
+  console.log (fact 6);
 };

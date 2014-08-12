@@ -108,6 +108,27 @@ var Pure = function(fn) {
 };
 
 /*
+ * A weak function requires its arguments to be weakly forced
+ */
+var Weak = function(fn) {
+  return Pure(function() {
+    var args = slice.apply(arguments).map(force);
+    return fn.apply(this, args);
+  });
+};
+
+var Numeric = function(fn) {
+  return Weak(function() {
+    slice.apply(arguments).forEach(function(arg) {
+      if (typeof arg !== 'number' || arg != arg)
+        throw new Error('Argument to Numeric Function is not a number, instead: ' + arg);
+    });
+
+    return fn.apply(this, arguments);
+  });
+};
+
+/*
  * IO Actions - (These IO actions can produce lazy values)
  */
 var IO = function(fn) {
@@ -188,6 +209,8 @@ module.exports = {
   IO: IO,           // A constructor for an IO action
   Thunk: Thunk,     // Create a lazy thunk
   Pure: Pure,       // Mark a function as being pure (all functions in myst are pure)
+  Weak: Weak,       // A weak function accepts arguments in WHNF
+  Numeric: Numeric, // A Numeric function only accepts numerical arguments
   call: call,       // Call a pure function, returning a lazy thunk
   force: force,     // Force a thunk into whnf
   forceJS: forceJS, // Force thunk into a valid JS object

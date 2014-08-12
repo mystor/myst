@@ -93,6 +93,15 @@ var desugarers = {
 
   FunctionBody: descendInto(['declarations', 'returns']),
 
+  Operator: function(ast) {
+    return desugar({
+      type: 'Invocation',
+      callee: {type: 'Identifier', name: ast.callee},
+      arguments: ast.arguments,
+      loc: ast.loc
+    });
+  },
+
   Invocation: function(ast) {
     // Wrap functions for partial applications with _ placeholders
     if (ast.arguments.some(function(arg) { return arg.type === 'Placeholder'; })) {
@@ -204,30 +213,30 @@ var desugarers = {
     });
   },
 
-  // Operators are just functions
-  BinaryOperator: function(ast) {
-    return desugar({
-      type: 'Invocation',
-      callee: {
-        type: 'Identifier',
-        name: identifierify(ast.op)
-      },
-      arguments: [ast.left, ast.right],
-      loc: ast.loc
-    });
-  },
+  // // Operators are just functions
+  // BinaryOperator: function(ast) {
+  //   return desugar({
+  //     type: 'Invocation',
+  //     callee: {
+  //       type: 'Identifier',
+  //       name: identifierify(ast.op)
+  //     },
+  //     arguments: [ast.left, ast.right],
+  //     loc: ast.loc
+  //   });
+  // },
 
-  UnaryOperator: function(ast) {
-    return desugar({
-      type: 'Invocation',
-      callee: {
-        type: 'Identifier',
-        name: identifierify(ast.op)
-      },
-      arguments: ast.arguments,
-      loc: ast.loc
-    });
-  },
+  // UnaryOperator: function(ast) {
+  //   return desugar({
+  //     type: 'Invocation',
+  //     callee: {
+  //       type: 'Identifier',
+  //       name: identifierify(ast.op)
+  //     },
+  //     arguments: ast.arguments,
+  //     loc: ast.loc
+  //   });
+  // },
 
   Object: function(ast) {
     var args = [];
