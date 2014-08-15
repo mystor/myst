@@ -9,7 +9,6 @@
 
 /* CODE BLOCKS */
 "fn"                       {return 'FUNCTION';}
-"do"                       {return 'DO';}
 
 "import"                   {return 'IMPORT';}
 "from"                     {return 'FROM';}
@@ -30,8 +29,6 @@
 "]"                        {return ']';}
 "("                        {return '(';}
 ")"                        {return ')';}
-
-"<-"                       {return '<-';} /* Monadic bind in do block */
 
 /* OPERATORS */
 "++"                       {return '++';}
@@ -57,7 +54,7 @@
 "||"                       {return '||';}
 "&&"                       {return '&&';}
 
-"&!"                       {return '&!';}
+"~"                        {return '~';}
 
 "!"                        {return '!';} /* Unary */
 
@@ -93,7 +90,8 @@
 %right '<|' '<<'
 %right '!' '&!'
 %left '.'
-%precedence NEG
+%right '~'
+%left NEG
 %left INVOCATION
 
 %start program
@@ -102,18 +100,24 @@
 
 /* The entry point for the program */
 program
-    : imports declarations EOF
-        { return {type: 'Program', declarations: $2, imports: $1, loc: @0}; }
+    : statements EOF
+        { return {type: 'Program', statements: $1, loc: @0}; }
     ;
 
-/* Imports */
-
-imports
+statements
     : { $$ = []; }
-    | imports import ';'
+    | statements statement ';'
         { $$ = $1.slice(); $$.push($2); }
     ;
 
+statement
+	: import { $$ = $1; }
+	| declaration { $$ = $1; }
+	| expression
+		{ $$ = {type: 'Expression', value: $1, loc: @0}; }
+	;
+
+/* Imports */
 import
     : FROM string IMPORT import_names
         { $$ = {type: 'Import', names: $4, target: $2, as: null, loc: @0}; }
@@ -161,67 +165,27 @@ placeholder
 
 /* Variable Declarations */
 
-declarations
-    : { $$ = []; }
-    | declarations declaration ';'
-        { $$ = $1.slice(); $$.push($2); }
-    ;
-
 declaration
-    : IDENTIFIER '=' expression
+    : identifier '=' expression
         { $$ = {type: 'Declaration', name: $1, value: $3, loc: @0}; }
     ;
 
-/* Match (potentially destructuring assignments) */
-
-match
-    : identifier { $$ = $1; }
-    | placeholder { $$ = $1; }
-    ;
-
-match_list
-    : match { $$ = [$1]; }
-    | match_list match
-        { $$ = $1.slice(); $$.push($2); }
-    ;
-
-optional_match_list
-    : { $$ = []; }
-    | match_list { $$ = $1; }
-    ;
-
 /* Functions */
+parameter
+	: identifier { $$ = $1; }
+	| placeholder { $$ = $1; }
+	| '~' parameter { $$ = {type: 'LazyParameter', value: $2, loc: @0}; }
+	;
 
-function_body
-    : declarations expression
-        { $$ = {type: 'FunctionBody', returns: $2, declarations: $1, loc: @0}; }
-    ;
+parameter_list
+	: { $$ = [] }
+	| parameter_list parameter
+		{ $$ = $1.slice(); $$.push($2); }
+	;
 
 function
-    : FUNCTION match_list '{' function_body '}'
+    : FUNCTION parameter_list '{' statements '}'
         { $$ = {type: 'Function', params: $2, body: $4, loc: @0}; }
-    ;
-
-/* "DO" block */
-
-do_body_item
-    : identifier '<-' expression
-        { $$ = {type: 'Bind', target: $1, value: $3, loc: @0}; }
-    | expression
-        { $$ = {type: 'Action', value: $1, loc: @0}; }
-    | declaration
-        { $$ = $1; }
-    ;
-
-do_body
-    : { $$ = []; }
-    | do_body_item ';' do_body
-        { $$ = $3; $$.unshift($1); }
-    ;
-
-do
-    : DO prim_expression optional_match_list '{' do_body '}'
-        { $$ = {type: 'Do', monad: $2, params: $3, body: $5, loc: @0}; }
     ;
 
 /* Member Expression */
@@ -286,15 +250,17 @@ argument_list
 invocation
     : prim_expression argument_list %prec INVOCATION
         { $$ = {type: 'Invocation', callee: $1, arguments: $2, loc: @0}; }
+    | prim_expression '!' % prec INVOCATION
+        { $$ = {type: 'Invocation', callee: $1, arguments: [], loc: @0}; }
     ;
 
 /* If Expression */
 
 if
-    /* : IF expression THEN expression
-        { $$ = {type: 'Operator', callee: '_IF_', arguments: [$2, $4], loc: @0}; } */
-    : IF expression THEN expression ELSE expression
-        { $$ = {type: 'Operator', callee: '_IF_', arguments: [$2, $4, $6], loc: @0}; }
+    : IF '(' expression ')' '{' expression '}'
+        { $$ = {type: 'If', condition: $3, then: $6, else: null, loc: @0}; }
+    | IF '(' expression ')' '{' expression '}' ELSE '{' expression '}'
+        { $$ = {type: 'If', condition: $3, then: $6, else: $10, loc: @0}; }
     ;
 
 /* Expressions */
@@ -307,6 +273,8 @@ prim_expression
     | array_literal { $$ = $1; }
     | do { $$ = $1; }
     | function { $$ = $1; }
+	| '~' prim_expression
+		{ $$ = {type: 'Operator', callee: '_LAZY_', arguments: [$2], loc: @0}; }
     | '!' prim_expression
         { $$ = {type: 'Operator', callee: '_NOT_', arguments: [$2], loc: @0}; }
     ;
@@ -314,7 +282,7 @@ prim_expression
 expression
     : prim_expression { $$ = $1; }
     | invocation { $$ = $1; }
-    | if { $$ = $1; }
+    // | if { $$ = $1; }
     | '-' prim_expression %prec NEG
         { $$ = {type: 'Operator', callee: '_NEG_', arguments: [$2], loc: @0}; }
     | expression '+'  expression

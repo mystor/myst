@@ -1,29 +1,9 @@
-trace = fn m y {
-  &! do IO {
-    console.log m y;
-    IO.return y;
-  }
-};
+-- Comment
+fact x = x * fact (x - 1)
 
-MainPage = &!React.createClass {
-  render: &!React.DOM.span {} "Hello"
-};
+getS {s:x, p} = x
 
-fact = fn x {
-  if x <= 0 then
-    1
-  else
-    x * fact (x - 1)
-};
-
-test1 = { Hello: "There!", Whats: 9+9 };
-
-test2 = ["Hello", "Again", 9+3+8];
-
-main = do IO {
-  console.log test1;
-  console.log test2;
-  console.log "Hello World!";
-  console.log "This is a pretty cool place!";
-  console.log (fact 5);
-};
+main x =
+  console.log ("Hello, World! " ++ x)
+  console.log "What's Up?"
+  y = read!

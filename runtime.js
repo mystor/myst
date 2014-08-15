@@ -1,219 +1,96 @@
 var mori = require('mori');
-var slice = [].slice;
 
 /*
- * Thunks
+ * Define a Myst-Aware function (jsifies its return value)
  */
-function force(thunk) {
-  while (isThunk(thunk))
-    thunk = thunk.force();
+function Fn (fn, lazy) {
+  if (typeof fn !== 'function')
+    throw new Error('Attempt to declare an ' + typeof fn + ' as a Myst function');
 
-  return thunk;
-}
+  var jsFn = function() {
+    return jsify(fn.apply(this, arguments)); // TODO: Trampoline
+  };
 
-function forceJS(thunk) {
-  var forced = force(thunk);
+  jsFn.$$myst = fn;
+  jsFn.$$lazy = lazy;
 
-  if (isMystObj(forced)) {
-    if (mori.is_map(forced)) {
-      return mori.reduce_kv(function(acc, k, v) {
-        acc[k] = forceJS(v);
-        return acc;
-      }, {}, forced);
-    } else {
-      return mori.clj_to_js(mori.map(forceJS, forced));
-    }
+  return jsFn;
+};
+
+/*
+ * Call a function in a Myst context
+ */
+function call (fn, n, x, noTrampoline) {
+  if (typeof fn !== 'function')
+    throw new Error('Attempt to call a non-function');
+
+  var lazy = fn.$$lazy || [];
+  var nx = Array(n);
+  for (var i=0; i<n; i++) {
+    if (! lazy[i])
+      nx[i] = x(i);
   }
 
-  return forced; // At some point make this fix more things
+  if (fn.$$myst) { // Establish a trampoline
+    var val = fn.$$myst.apply(null, nx);
+    if (! noTrampoline) {
+      while (! isContinuation(val))
+        val = val();
+    }
+    return val;
+  } else {
+    return fn.apply(null, nx);
+  }
 }
 
-function isThunk(thunk) {
-  return typeof thunk === 'function' && thunk.$$thunk === true;
+/*
+ * Wrap tail-calls in continuations
+ */
+function tail_call(fn, n, x) {
+  var continuation = function() {
+    return call(fn, n, x, true);
+  };
+
+  continuation.$$continuation = true;
+
+  return continuation;
 }
 
-function isFunction(object) {
-  return typeof object === 'function' && (object.$$pure || ! object.$$io);
-}
+/*
+ * Immutable "Myst" objects
+ */
+function jsify(object) { // Forces an object to be js-like
+  if (isMystObj(object)) {
+    return mori.clj_to_js(object);
+  }
 
-function isIO(object) {
-  return typeof object === 'function' && (object.$$io || (! object.$$pure && ! object.$$thunk));
+  return object;
 }
 
 function isMystObj(object) {
   return mori.is_collection(object) && object.$$mystobj === true;
 }
 
-/*
- * Functions contain values which will be evaluated at some point in the future
- */
-var Thunk = function(value) {
-  var forced = false;
-
-  var thunk = function() {
-    // The main thunk function is designed to be callable from
-    // JavaScript, and attempts to force the object, and then apply
-    // any arguments (and call any IO actions)
-    var args = slice.call(arguments);
-
-    var forced = force(thunk);
-    if (isFunction(forced)) {
-      args.unshift(forced);
-
-      forced = force(call.apply(null, args));
-    } else if (args.length > 0) {
-      throw new Error('Attempt to call non-function object');
-    }
-
-    if (isIO(forced)) {
-      return force(doIO(forced));
-    } else {
-      return forced;
-    }
-  };
-
-  Object.defineProperty(thunk, '$$thunk', { value: true });
-
-  thunk.force = function(type) {
-    if (! forced) {
-      value = value(type);
-      forced = true;
-    }
-
-    return value;
-  };
-
-  return thunk;
-};
-
-/*
- * Pure Functions - (These are lazily evaluated)
- */
-var Pure = function(fn) {
-  if (typeof fn !== 'function')
-    throw new Error('Attempt to declare an ' + typeof fn + ' as a Pure function');
-
-  var pureFn = function() {
-    var args = slice.apply(arguments);
-    args.unshift(fn);
-
-    return forceJS(call.apply(null, args)());
-  };
-
-  pureFn.impl = fn;
-
-  Object.defineProperty(pureFn, '$$pure', { value: true });
-
-  return pureFn;
-};
-
-/*
- * A weak function requires its arguments to be weakly forced
- */
-var Weak = function(fn) {
-  return Pure(function() {
-    var args = slice.apply(arguments).map(force);
-    return fn.apply(this, args);
-  });
-};
-
-var Numeric = function(fn) {
-  return Weak(function() {
-    slice.apply(arguments).forEach(function(arg) {
-      if (typeof arg !== 'number' || arg != arg)
-        throw new Error('Argument to Numeric Function is not a number, instead: ' + arg);
-    });
-
-    return fn.apply(this, arguments);
-  });
-};
-
-/*
- * IO Actions - (These IO actions can produce lazy values)
- */
-var IO = function(fn) {
-  if (typeof fn !== 'function')
-    throw new Error('IO actions must be functions');
-
-  var io = function() {
-    return forceJS(fn());
-  };
-
-  Object.defineProperty(io, '$$action', { value: fn });
-  Object.defineProperty(io, '$$io', { value: true });
-
-  return io;
-};
-
-IO.bind = Pure(function(a, b) {
-  return IO(function() {
-    var x = doIO(a);
-    var y = call(b, x);
-    return doIO(y);
-  });
-});
-
-IO.return = Pure(function(a) {
-  return IO(function() {
-    return a;
-  });
-});
-
-/*
- * Perform an IO action
- */
-var doIO = function(io) {
-  io = force(io);
-  if (typeof io !== 'function' || io.hasOwnProperty('$$pure'))
-    throw new Error('Attempt to do non-IO action');
-
-  if (io.hasOwnProperty('$$io'))
-    return io.$$action();
-  else
-    return io();
-};
-
-/*
- * Call a Pure function (or lazily call a JS function - producing an IO action)
- * This does no special handling of `this`. That is handled by the deref function.
- */
-var call = function(fn) {
-  var args = slice.call(arguments, 1);
-  fn = force(fn);
-
-  if (typeof fn !== 'function' || fn.hasOwnProperty('$$io'))
-    throw new Error('Attempt to call non-function type');
-
-  if (fn.hasOwnProperty('$$pure')) {
-    // If the function is marked as "pure", we can call it whenever we
-    // want, so we call it when it is needed.
-    return Thunk(function() {
-      return fn.impl.apply(null, args);
-    });
-  } else {
-    // If the function isn't marked as "pure", we make an IO action
-    // which will call the function with the given arguments when invoked
-    return IO(function() {
-      return fn.apply(null, args.map(forceJS));
-    });
-  }
-};
-
 // Basic Data struct
-var MystObj = function(object) {
-  object.$$mystobj = true;
-  return object;
-};
+function object() {
+  var o = mori.map.apply(null, arguments);
+  o.$$mystobj = true;
+  return o;
+}
+
+function array() {
+  var a = mori.vector.apply(null, arguments);
+  a.$$mystobj = true;
+  return a;
+}
 
 module.exports = {
-  IO: IO,           // A constructor for an IO action
-  Thunk: Thunk,     // Create a lazy thunk
-  Pure: Pure,       // Mark a function as being pure (all functions in myst are pure)
-  Weak: Weak,       // A weak function accepts arguments in WHNF
-  Numeric: Numeric, // A Numeric function only accepts numerical arguments
-  call: call,       // Call a pure function, returning a lazy thunk
-  force: force,     // Force a thunk into whnf
-  forceJS: forceJS, // Force thunk into a valid JS object
-  MystObj: MystObj, // Mark an object as being a valid MystObj
-  doIO: doIO        // Perform an IO action
+  F: Fn,                // F -> Defines a Myst-aware function
+  C: call,              // C -> Call a function
+  T: tail_call,         // T -> TailCall a function
+  O: object,            // O -> Define an object MystObj
+  A: array,             // A -> Define an array MystObj
+
+  jsify: jsify,         // Force a MystObj into JS-form
+  isMystObj: isMystObj  // Check if an object is a valid MystObj
 };
