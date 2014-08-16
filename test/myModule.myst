@@ -1,9 +1,46 @@
+-- (def x 10)
+-- (defn fact [x]
+--   (* xol (fact (- x 1))))
+--
+-- (defn getS [{s:x p:[a, b]}]
+--   (-> x
+--     (map (fn [x] y))
+--     (join '...')))
+--
+-- (defn transform [y]
+--   (-> y
+--     (map (fn [x] y))
+--     (join ' ')
+--     (drop 3)
+--     (.log js/console)))
+--
+-- (defn main [x]
+--   (.log js/console (str "Hello, World! " x))
+--   (.log js/console "What's Up?")
+--   (def y (read)))
+
+
+
 -- Comment
-fact x = x * fact (x - 1)
+let x = 10
+let fact x = xol * fact (x - 1)
 
-getS {s:x, p} = x
+-- let getS {s:x, p:[a, b]} = x
+--   |> map (fn x -> y) %
+--   |> join '...' %
+--
+-- let transform y =
+--   y |> map (fn x -> y) %
+--     |> join ' ' %
+    -- |> drop 3 %
+    -- |> console.log %
 
-main x =
+let main x =
   console.log ("Hello, World! " ++ x)
   console.log "What's Up?"
-  y = read!
+  let y = read!
+
+let main x =
+  console.log ("Hello, World! " ++ x)
+  console.log "What's Up?"
+  let y = read!

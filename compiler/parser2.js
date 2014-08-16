@@ -2,7 +2,7 @@ var Parser = require('jison').Parser;
 
 var grammar = {
   'operators': [
-    ['left', '=', '->'],
+    ['left', '=', 'LAMBDA'],
     ['right', '||'],
     ['right', '&&'],
     ['nonassoc', '==', '!=', '<', '>', '<=', '>='],
@@ -92,7 +92,7 @@ nt('statements',
    'statements NEWLINE', function() {
      return $1;
    },
-   'statements statement NEWLINE', function() {
+   'statements statement', function() {
      $1.push($2); return $1;
    }
 );
@@ -101,17 +101,17 @@ nt('statement',
    'declaration', function() {
      return $1;
    },
-   'expression', function() {
+   'expression NEWLINE', function() {
      return yy.ExpressionStatement($1);
    }
 );
 
 nt('declaration', // TODO: Add guards
-   'bind_target = expression', function() {
-     return yy.Declaration($1, $3);
+   'LET bind_target = expression NEWLINE', function() {
+     return yy.Declaration($2, $4);
    },
-   'bind_target = NEWLINE INDENT statements DEDENT', function() {
-     return yy.Declaration($1, $5);
+   'LET bind_target = NEWLINE INDENT statements DEDENT', function() {
+     return yy.Declaration($2, $6);
    }
 );
 
@@ -152,10 +152,10 @@ nt('obj_destructure_list',
 
 nt('obj_destructure',
    'identifier', function() {
-     yy.PropertyDestructure($1, $1);
+     return yy.PropertyDestructure($1, $1);
    },
    'identifier : parameter', function() {
-     yy.PropertyDestructure($1, $3);
+     return yy.PropertyDestructure($1, $3);
    }
 );
 
@@ -220,9 +220,9 @@ nt('argument',
 
 /* Lambda */
 nt('lambda',
-   'FN parameter_list -> expression', function() {
+   'FN parameter_list -> expression', Prec('LAMBDA', function() {
      return yy.Lambda($2, $4); // TODO: Convert to statements?
-   },
+   }),
    'FN parameter_list -> NEWLINE INDENT statements DEDENT', function() {
      return yy.Lambda($2, $6);
    }
@@ -230,28 +230,26 @@ nt('lambda',
 
 /* Members */
 nt('member',
-   'expression . IDENTIFIER', function() {
+   'basic_expression . IDENTIFIER', function() {
      return yy.Member($1, $3);
    }
 );
 
 nt('basic_expression',
    '( expression )', function() {return $2;},
-   'identfier',  id,
+   'identifier', id,
    'member',     id,
    'literal',    id
 );
 
 
 nt('expression',
-   // 'basic_expression', id,
+   'basic_expression', id,
    'invocation',       id,
    // 'unary',            id,
    'binary',           id,
-   'lambda',     id
+   'lambda',           id
 );
-
-console.log(JSON.stringify(grammar, null, 2));
 
 var parser = new Parser(grammar);
 
@@ -260,18 +258,16 @@ parser.lexer = require('./lexer').lexer;
 
 module.exports = {
   parse: function(input) {
-    console.log("PARSE!");
-    parser.lexer.yyloc = {
-        first_column: 0,
-        first_line: 1,
-        last_line: 1,
-        last_column: 0
+    parser.lexer.yyloc = { // TODO: This should probably be in the lexer
+      first_column: 0,
+      first_line: 1,
+      last_line: 1,
+      last_column: 0
     };
-
-    console.log('here');
+    parser.lexer.yylineno = 1;
     parser.lexer.yylloc = parser.lexer.yyloc;
 
-    return parser.parse(input);
+    return parser.parse(input + '\n');
   },
   parser: parser
 };
