@@ -33,12 +33,12 @@ lexer.addRule = function(re, fn) {
     for (var i=0; i < lexeme.length; i++) {
       if (lexeme.charAt(i) === '\n') {
         yyloc.last_column = 0;
-        yyloc.last_indent = 0;
+        yyloc.last_indent = 1;
         yyloc.last_line++;
         this.yylineno++;
       } else if (lexeme.charAt(i) === '\t') {
         yyloc.last_column++;
-        yyloc.last_indent = ((yyloc.last_indent / 8 + 1) | 0) * 8;
+        yyloc.last_indent = ((yyloc.last_indent / 8 + 1) | 0) * 8; // TODO: Check!
       } else {
         yyloc.last_column++;
         yyloc.last_indent++;
@@ -293,8 +293,8 @@ var layoutLexer = new (function LayoutLexer() {
       last_line: 1,
       last_column: 0,
 
-      first_indent: 0,
-      last_indent: 0
+      first_indent: 1,
+      last_indent: 1
     };
     lexer.yylineno = 1;
     lexer.yylloc = lexer.yyloc;
@@ -310,6 +310,13 @@ var layoutLexer = new (function LayoutLexer() {
     }
 
     insertLayoutTokens();
+
+    tokens.forEach(function(token) {
+      if (typeof token === 'string') // TODO: Fix this
+        console.log(token);
+      else
+        console.log(token.tok);
+    });
 
     tokens = layout(tokens);
 

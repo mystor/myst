@@ -1,26 +1,3 @@
--- (def x 10)
--- (defn fact [x]
---   (* xol (fact (- x 1))))
---
--- (defn getS [{s:x p:[a, b]}]
---   (-> x
---     (map (fn [x] y))
---     (join '...')))
---
--- (defn transform [y]
---   (-> y
---     (map (fn [x] y))
---     (join ' ')
---     (drop 3)
---     (.log js/console)))
---
--- (defn main [x]
---   (.log js/console (str "Hello, World! " x))
---   (.log js/console "What's Up?")
---   (def y (read)))
-
-
-
 -- Comment
 let x = 10
 let fact x = xol * fact (x - 1)
@@ -40,13 +17,21 @@ let f x = do
     z <- af y
     return 20
 
--- {}
--- LET {IDENTIFIER = NUMBER}
--- LET {IDENTIFIER IDENTIFIER = IDENTIFIER * IDENTIFIER (IDENTIFIER - NUMBER)}
+-- {
+-- LET {IDENTIFIER = NUMBER} ;
+-- LET {IDENTIFIER IDENTIFIER = IDENTIFIER * IDENTIFIER (IDENTIFIER - NUMBER)} ;
 -- LET {IDENTIFIER {IDENTIFIER : IDENTIFIER , IDENTIFIER : [IDENTIFIER , IDENTIFIER]} =
---      IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) % |> IDENTIFIER STRING %}
--- LET {IDENTIFIER IDENTIFIER = IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) %
--- |> IDENTIFIER STRING %
--- |> IDENTIFIER NUMBER %
--- |> IDENTIFIER . IDENTIFIER %}
+--     IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) %
+--                |> IDENTIFIER STRING %} ;
+-- LET {IDENTIFIER IDENTIFIER =
+--     IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) %
+--                |> IDENTIFIER STRING %
+--                |> IDENTIFIER NUMBER %
+--                |> IDENTIFIER . IDENTIFIER %} ;
+-- LET {IDENTIFIER IDENTIFIER = DO {
+--     LET {IDENTIFIER = NUMBER} ;
+--     IDENTIFIER <- IDENTIFIER IDENTIFIER ;
+--     IDENTIFIER NUMBER
+-- }} ;
+-- }
 -- EOF
