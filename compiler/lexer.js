@@ -65,29 +65,6 @@ lexer.addRule = function(re, fn) {
  * Lexical Grammar *
  *******************/
 
-/* Comments & Newlines */
-/*lexer.addRule(/(?:\s|--[^\n]*\n)+/, function(lexeme) {
-  if (inBraces || lexeme.indexOf('\n') === -1) return undefined;
-
-  var tokens = ['NEWLINE'];
-
-  var lines = lexeme.replace(/\t/, '        ').split('\n');
-  var indentation = lines[lines.length - 1].length;
-
-  if (indentation > indent[0]) {
-    indent.unshift(indentation);
-    tokens.push('INDENT');
-  } else {
-    while (indentation < indent[0]) {
-      tokens.push('DEDENT');
-      indent.shift();
-    }
-  }
-
-  console.log(tokens);
-
-  return tokens;
-});*/
 /* Ignore comments and newlines */
 lexer.addRule(/(?:\s|--[^\n]*\n)+/, function(lexeme) {});
 
@@ -168,12 +145,19 @@ var layoutLexer = new (function LayoutLexer() {
   function PointyLayoutToken(n) {this.n = n; this.tok = '<'+n+'>';}
 
   // Run the script to insert layout tokens before laying out!
-  function insertLayoutTokens() {
+  function insertLayoutTokens(tokens) {
+    tokens = tokens.slice();
+
+    // Ensure that the last element is EOF and pop it
+    var EOF = tokens.pop();
+    if (EOF.tok !== 'EOF')
+      throw new Error('Last token is not EOF'); // TODO: Will this ever happen?
+
     var idx = 0;
 
     // If the first lexeme is preceded only by whitespace on the same line, the lexeme
     // is preceded by {n} where n is the indentation of the lexeme
-    if (['module', '{'].indexOf(tokens[0].tok) === -1) {
+    if (['{'].indexOf(tokens[0].tok) === -1) {
       var n = tokens[0].loc.first_indent;
       tokens.unshift(new CurlyLayoutToken(n));
       idx++;
@@ -185,14 +169,14 @@ var layoutLexer = new (function LayoutLexer() {
       // if not followed by lexeme '{', token '{n}" added after
       // the keyword, where n is the indentation of the next lexeme
       // if there is one, or 0 if the next lexeme is EOF
-      var specialKeywords = ['LET', 'WHERE', 'DO', 'OF'];
+      var specialKeywords = ['=', 'DO'];
       if (specialKeywords.indexOf(tokens[idx].tok) !== -1) { // Is 'let', 'where', 'do' or 'of'
-        if (tokens[idx + 1].tok !== '{') {                   // Next tok is not '{'
+        if (tokens.length === idx + 1) {                                     // at EOF
+          tokens.push(new CurlyLayoutToken(0));
+          jump++;
+        } else if (tokens[idx + 1].tok !== '{' ||                            // no explicit block
+                   tokens.length > idx + 3 && tokens[idx + 3].tok === ':') { // { part of Object Literal
           var n = tokens[idx + 1].loc.first_indent;
-          if (tokens[idx + 1].tok === 'EOF')
-            n = 0;
-
-          // Insert the {n}
           tokens.splice(idx + 1, 0, new CurlyLayoutToken(n));
           jump++;
         }
@@ -201,7 +185,6 @@ var layoutLexer = new (function LayoutLexer() {
       // Where the start of a lexeme is preceded only by white space on the same line,
       // this lexeme is preceded by <n> where n is the indentation of the lexeme, provided
       // that it is not, as a consequence of the other rules, preceded by {n}
-      console.log(! (tokens[idx - 1] instanceof CurlyLayoutToken));
       if (idx === 0 ||                                                  // First token OR
           (! (tokens[idx - 1] instanceof CurlyLayoutToken) &&           // Not preceded by {n} AND
            tokens[idx - 1].loc.last_line < tokens[idx].loc.last_line)) {// First on line
@@ -214,6 +197,9 @@ var layoutLexer = new (function LayoutLexer() {
       // Move to the next token
       idx += jump;
     }
+
+    tokens.push(EOF);
+    return tokens;
   }
 
   function layout(tokens) {
@@ -223,7 +209,6 @@ var layoutLexer = new (function LayoutLexer() {
     var stack = [];
 
     while (remaining.length > 0) {
-      console.log(remaining.length, out.length, stack.length);
       var tok = remaining.shift();        // Tok is the current token (automatically popped)
       var stackEmpty = stack.length <= 0; // Is the stack empty?
       var m = !stackEmpty ? stack[0] : 0; // m is the first element in the stack (or 0)
@@ -282,7 +267,6 @@ var layoutLexer = new (function LayoutLexer() {
 
     // Add the EOF token back on
     out.push(EOF);
-
     return out;
   }
 
@@ -309,15 +293,8 @@ var layoutLexer = new (function LayoutLexer() {
       tokens.push(tok);
     }
 
-    insertLayoutTokens();
-
-    tokens.forEach(function(token) {
-      if (typeof token === 'string') // TODO: Fix this
-        console.log(token);
-      else
-        console.log(token.tok);
-    });
-
+    // Perform the layouting
+    tokens = insertLayoutTokens(tokens);
     tokens = layout(tokens);
 
     tokens.forEach(function(token) {

@@ -12,26 +12,32 @@ let transform y =
         |> drop 3 %
         |> console.log %
 
-let f x = do
+let f x =
     let y = 10
-    z <- af y
     return 20
 
+let a = {x:"alpha", y:"zeta"}
+
+-------------------
+-- Lexer results --
+-------------------
 -- {
--- LET {IDENTIFIER = NUMBER} ;
--- LET {IDENTIFIER IDENTIFIER = IDENTIFIER * IDENTIFIER (IDENTIFIER - NUMBER)} ;
--- LET {IDENTIFIER {IDENTIFIER : IDENTIFIER , IDENTIFIER : [IDENTIFIER , IDENTIFIER]} =
+-- LET IDENTIFIER = {NUMBER} ;
+-- LET IDENTIFIER IDENTIFIER = {IDENTIFIER * IDENTIFIER (IDENTIFIER - NUMBER)} ;
+-- LET IDENTIFIER {IDENTIFIER : IDENTIFIER , IDENTIFIER : [IDENTIFIER , IDENTIFIER]} = {
 --     IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) %
---                |> IDENTIFIER STRING %} ;
--- LET {IDENTIFIER IDENTIFIER =
+--                |> IDENTIFIER STRING %
+-- } ;
+-- LET IDENTIFIER IDENTIFIER = {
 --     IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) %
 --                |> IDENTIFIER STRING %
 --                |> IDENTIFIER NUMBER %
---                |> IDENTIFIER . IDENTIFIER %} ;
--- LET {IDENTIFIER IDENTIFIER = DO {
---     LET {IDENTIFIER = NUMBER} ;
---     IDENTIFIER <- IDENTIFIER IDENTIFIER ;
+--                |> IDENTIFIER . IDENTIFIER %
+-- } ;
+-- LET IDENTIFIER IDENTIFIER = {
+--     LET IDENTIFIER = {NUMBER} ;
 --     IDENTIFIER NUMBER
--- }} ;
+-- } ;
+-- LET IDENTIFIER = {{IDENTIFIER : STRING , IDENTIFIER : STRING}}
 -- }
 -- EOF
