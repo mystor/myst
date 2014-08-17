@@ -8,12 +8,12 @@ var p = path.join(__dirname, 'myModule.myst');
 var code = fs.readFileSync(p, { encoding: 'UTF-8' });
 
 var lexer = require('myst/compiler/lexer');
-// console.log(prettyjson.render(lexer.lex(code), {}));
+console.log(prettyjson.render(lexer.lex(code), {}));
 
-console.log('***********************');
+/*console.log('***********************');
 
 var parser = require('myst/compiler/parser2');
-console.log(prettyjson.render(parser.parse(code), {}));
+console.log(prettyjson.render(parser.parse(code), {})); */
 
 // var parser = require('myst/compiler/parser');
 // console.log(prettyjson.render(parser.parse(code), {}));

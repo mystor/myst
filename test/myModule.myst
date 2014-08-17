@@ -25,22 +25,28 @@
 let x = 10
 let fact x = xol * fact (x - 1)
 
--- let getS {s:x, p:[a, b]} = x
---   |> map (fn x -> y) %
---   |> join '...' %
---
--- let transform y =
---   y |> map (fn x -> y) %
---     |> join ' ' %
-    -- |> drop 3 %
-    -- |> console.log %
+let getS {s:x, p:[a, b]} =
+      x |> map (fn x -> y) %
+        |> join '...' %
 
-let main x =
-  console.log ("Hello, World! " ++ x)
-  console.log "What's Up?"
-  let y = read!
+let transform y =
+      y |> map (fn x -> y) %
+        |> join ' ' %
+        |> drop 3 %
+        |> console.log %
 
-let main x =
-  console.log ("Hello, World! " ++ x)
-  console.log "What's Up?"
-  let y = read!
+let f x = do
+    let y = 10
+    z <- af y
+    return 20
+
+-- {}
+-- LET {IDENTIFIER = NUMBER}
+-- LET {IDENTIFIER IDENTIFIER = IDENTIFIER * IDENTIFIER (IDENTIFIER - NUMBER)}
+-- LET {IDENTIFIER {IDENTIFIER : IDENTIFIER , IDENTIFIER : [IDENTIFIER , IDENTIFIER]} =
+--      IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) % |> IDENTIFIER STRING %}
+-- LET {IDENTIFIER IDENTIFIER = IDENTIFIER |> IDENTIFIER (FN IDENTIFIER -> IDENTIFIER) %
+-- |> IDENTIFIER STRING %
+-- |> IDENTIFIER NUMBER %
+-- |> IDENTIFIER . IDENTIFIER %}
+-- EOF
