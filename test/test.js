@@ -7,8 +7,15 @@ var compiler = require('myst/compiler');
 var p = path.join(__dirname, 'myModule.myst');
 var code = fs.readFileSync(p, { encoding: 'UTF-8' });
 
-var lexer = require('myst/compiler/lexer');
-console.log(prettyjson.render(lexer.lex(code), {}));
+var lexer = require('myst/compiler/lexer').lexer;
+var layout = require('myst/compiler/layout');
+
+var layoutTransformer = new layout.LayoutTransformer(lexer);
+layoutTransformer.setInput(code);
+
+var tok;
+while (typeof (tok = layoutTransformer.lex()) !== 'undefined')
+  console.log(tok);
 
 /*console.log('***********************');
 
