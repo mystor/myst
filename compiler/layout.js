@@ -33,7 +33,7 @@ function insertLayoutTokens(tokens) {
     // if not followed by lexeme '{', token '{n}" added after
     // the keyword, where n is the indentation of the next lexeme
     // if there is one, or 0 if the next lexeme is EOF
-    var specialKeywords = ['=', 'DO'];
+    var specialKeywords = ['=', 'DO', '->'];
     if (specialKeywords.indexOf(tokens[idx].tok) !== -1) { // Is 'let', 'where', 'do' or 'of'
       if (tokens.length === idx + 1) {                                     // at EOF
         tokens.push(new CurlyLayoutToken(0));
