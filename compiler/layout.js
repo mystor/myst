@@ -163,7 +163,7 @@ function LayoutTransformer(lexer) {
     tokens = layout(insertLayoutTokens(tokens));
   };
 
-  this.lex = function() {
+  this.lex = function(table, state) {
     // Provide a single token to the owning process
     if (! tokens.length) return undefined;
 
@@ -172,6 +172,7 @@ function LayoutTransformer(lexer) {
       this.yyloc = this.yylloc = tok.loc;
       this.yylineno = tok.loc.last_line;
     }
+    this.yytext = tok.yytext;
 
     return tok.tok;
   };

@@ -1,4 +1,4 @@
-module.exports = {
+var Syntax = {
   Operation: function(name, fst, snd) {
     return { // TODO: Support unary better
       type: 'Operation',
@@ -89,5 +89,29 @@ module.exports = {
       object: object,
       property: property
     };
+  },
+
+  Object: function(properties) {
+    return {
+      type: 'Object',
+      properties: properties
+    };
+  },
+
+  ObjectProperty: function(key, value) {
+    return {
+      type: 'ObjectProperty',
+      key: Syntax.Literal(key),
+      value: value
+    };
+  },
+
+  Array: function(items) {
+    return {
+      type: 'Array',
+      items: items
+    };
   }
 };
+
+module.exports = Syntax;

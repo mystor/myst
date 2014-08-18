@@ -3,18 +3,19 @@ let x = 10
 let fact x = xol * fact (x - 1)
 
 let getS {s:x, p:[a, b]} =
-      x |> map (fn x -> y) %
+      x |> map f %
         |> join '...' %
 
 let transform y =
-      y |> map (fn x -> y) %
+      y |> map f %
         |> join ' ' %
         |> drop 3 %
         |> console.log %
 
 let f x =
     let y = 10
-    return 20
+    return fn x ->
+      f
 
 let a = {x:"alpha", y:"zeta"}
 

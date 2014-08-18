@@ -79,39 +79,30 @@ nt('literal',
    }
 );
 
-nt('program', // TODO: Change $$= to return
-   'statements EOF', function() {
-     return yy.Program($1);
+/* Program Entry Point */
+nt('program',
+   '{ statements } EOF', function() {
+     return yy.Program($2);
    }
 );
 
 nt('statements',
-   '', function() {
-     return [];
+   'statement', function() {
+     return [$1];
    },
-   'statements NEWLINE', function() {
-     return $1;
-   },
-   'statements statement', function() {
-     $1.push($2); return $1;
+   'statements ; statement', function() {
+     $1.push($3); return $1;
    }
 );
 
 nt('statement',
-   'declaration', function() {
-     return $1;
-   },
-   'expression NEWLINE', function() {
-     return yy.ExpressionStatement($1);
-   }
+   'expression', id,
+   'declaration', id
 );
 
 nt('declaration', // TODO: Add guards
-   'LET bind_target = expression NEWLINE', function() {
-     return yy.Declaration($2, $4);
-   },
-   'LET bind_target = NEWLINE INDENT statements DEDENT', function() {
-     return yy.Declaration($2, $6);
+   'LET bind_target = { statements }', function() {
+     return yy.Declaration($2, $5);
    }
 );
 
@@ -220,12 +211,9 @@ nt('argument',
 
 /* Lambda */
 nt('lambda',
-   'FN parameter_list -> expression', Prec('LAMBDA', function() {
-     return yy.Lambda($2, $4); // TODO: Convert to statements?
-   }),
-   'FN parameter_list -> NEWLINE INDENT statements DEDENT', function() {
-     return yy.Lambda($2, $6);
-   }
+   'FN parameter_list -> { statements }', Prec('LAMBDA', function() {
+     return yy.Lambda($2, $5);
+   })
 );
 
 /* Members */
@@ -235,20 +223,57 @@ nt('member',
    }
 );
 
+nt('object',
+   '{ object_properties }', function() {
+     return yy.Object($2);
+   }
+);
+
+nt('object_properties',
+   'object_property', function() {
+     return [$1];
+   },
+   'object_properties , object_property', function() {
+     $1.push($3); return $1;
+   }
+);
+
+nt('object_property',
+   'IDENTIFIER : expression', function() {
+     return yy.ObjectProperty($1, $3);
+   }
+);
+
+nt('array',
+   '[ array_items ]', function() {
+     return yy.Array($2);
+   }
+);
+
+nt('array_items',
+   'expression', function() {
+     return [$1];
+   },
+   'array_items , expression', function() {
+     $1.push($3); return $1;
+   }
+);
+
 nt('basic_expression',
    '( expression )', function() {return $2;},
    'identifier', id,
    'member',     id,
-   'literal',    id
+   'literal',    id,
+   'lambda',     id,
+   'object',     id,
+   'array',      id
 );
 
 
 nt('expression',
    'basic_expression', id,
    'invocation',       id,
-   // 'unary',            id,
-   'binary',           id,
-   'lambda',           id
+   'binary',           id
 );
 
 var generator = new Generator(grammar);
@@ -259,15 +284,18 @@ var generator = new Generator(grammar);
 var oldGenerateModuleExpr = generator.generateModuleExpr;
 generator.generateModuleExpr = function() {
   var moduleExpr = oldGenerateModuleExpr.apply(this, arguments);
-  moduleExpr.replace('self.lexer.lex()', 'self.lexer.lex(table, state)');
-  return moduleExpr;
+  return moduleExpr.replace('lexer.lex()', 'lexer.lex(table, state)');
 };
 
 // Create the parser
 var parser = generator.createParser();
-
 parser.yy = require('./parserScope');
-parser.lexer = require('./lexer').lexer;
+
+// Attach the lexer
+var lexer = require('./lexer').lexer;
+var LayoutTransformer = require('./layout').LayoutTransformer;
+var layoutTransformer = new LayoutTransformer(lexer);
+parser.lexer = layoutTransformer;
 
 module.exports = {
   parse: function(input) {
