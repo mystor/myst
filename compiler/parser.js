@@ -1,4 +1,4 @@
-var Parser = require('jison').Parser;
+var Generator = require('jison').Generator;
 
 var grammar = {
   'operators': [
@@ -251,23 +251,27 @@ nt('expression',
    'lambda',           id
 );
 
-var parser = new Parser(grammar);
+var generator = new Generator(grammar);
+
+// Modify the generator to send the current state & parse table to the lexer
+// This is done such that we can implement parse-error(t)
+// TODO: Actually implement parse-error(t)
+var oldGenerateModuleExpr = generator.generateModuleExpr;
+generator.generateModuleExpr = function() {
+  var moduleExpr = oldGenerateModuleExpr.apply(this, arguments);
+  moduleExpr.replace('self.lexer.lex()', 'self.lexer.lex(table, state)');
+  return moduleExpr;
+};
+
+// Create the parser
+var parser = generator.createParser();
 
 parser.yy = require('./parserScope');
 parser.lexer = require('./lexer').lexer;
 
 module.exports = {
   parse: function(input) {
-    parser.lexer.yyloc = { // TODO: This should probably be in the lexer
-      first_column: 0,
-      first_line: 1,
-      last_line: 1,
-      last_column: 0
-    };
-    parser.lexer.yylineno = 1;
-    parser.lexer.yylloc = parser.lexer.yyloc;
-
-    return parser.parse(input + '\n');
+    return parser.parse(input);
   },
   parser: parser
 };
