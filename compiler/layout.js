@@ -134,11 +134,76 @@ function layout(tokens) {
   return out;
 }
 
+function next(remaining, stack, isParseError) {
+  var out = [];
+
+  if (remaining.length > 0) {
+    var tok = remaining.shift();        // Tok is the current token (automatically popped)
+    var stackEmpty = stack.length <= 0; // Is the stack empty?
+    var m = !stackEmpty ? stack[0] : 0; // m is the first element in the stack (or 0)
+
+    if (tok instanceof PointyLayoutToken) {       // L (<n>:ts) ms
+      if (!stackEmpty && m == tok.n) {            // L (<n>:ts) (m:ms) = ; : (L ts (m:ms)) if m = n
+        out.push({tok: ';'});
+      } else if (!stackEmpty && tok.n < m) {      // L (<n>:ts) (m:ms) = } : (L (<n>:ts) ms) if n < m
+        out.push({tok: '}'});
+        stack.shift();
+        remaining.unshift(tok);
+      } else {                                    // L (<n>:ts) ms = L ts ms
+        return next(remaining, stack, isParseError);
+      }
+    } else if (tok instanceof CurlyLayoutToken) {
+      if (stack.length > 0 && tok.n > stack[0]) { // L({n}:ts) (m:ms) = { : (L ts (n:m:ms)) if n > m
+        stack.unshift(tok.n);
+        out.push({tok: '{'});
+      } else if (tok.n > 0) {                     // L ({n}:ts) [] = { : (L ts [n]) if n > 0
+        stack.unshift(tok.n);
+        out.push({tok: '{'});
+      } else {                                    // L ({n}:ts) ms = { : } : (L (<n>:ts) ms)
+        out.push({tok: '{'});
+        out.push({tok: '}'});
+        remaining.unshift(new PointyLayoutToken(tok.n));
+      }
+    } else if (tok.tok === '}') {
+      if (!stackEmpty && m === 0) {               // L (}:ts) (0:ms) = } : (L ts ms)
+        out.push(tok /*}*/);
+        stack.shift();
+      } else {
+        throw new Error('Implicit closing brace matches implicit opening brace');
+      }
+    } else if (tok.tok === '{') {                 // L ({:ts) ms = { : (L ts (0:ms))
+      out.push(tok /*{*/);
+      stack.unshift(0);
+    } else {
+      if (!stackEmpty && m !== 0 && isParseError(tok)) { // L (t:ts) (m:ms) = } : (L (t:ts) ms)
+        // TODO: Implement parse-error(t)        //     if m != 0 and parse-error(t)
+        out.push({tok: '}'});
+        remaining.unshift(tok);
+        stack.shift();
+      } else {                                   // L (t:ts) ms = t : (L ts ms)
+        out.push(tok);
+      }
+    }
+  } else if (stack.length > 0) { // Finalize any contexts
+    if (stack[0] === 0) {
+      throw new Error('Reached EOF with out finding matching \'}\'');
+    }
+    out.push({tok: '}'});
+    stack.shift();
+  }
+
+  return out;
+}
+
 
 // The LayoutTransformer takes a lexer, and applies the layout algorithms to it,
 // adding {, } and ; where necessary to make parsing the token stream possible
 function LayoutTransformer(lexer) {
   var tokens = [];
+  var stack = [];
+  var upcoming = [];
+  var self = this;
+  var EOF;
 
   this.input = '';
   this.yyloc = this.yylloc = {
@@ -154,27 +219,55 @@ function LayoutTransformer(lexer) {
     // Run the lexer
     lexer.setInput(input);
 
+    // Reset the internal state (eww state)
+    stack = [];
+    upcoming = [];
     tokens = [];
     var tok;
     while (typeof (tok = lexer.lex()) !== 'undefined')
       tokens.push(tok);
 
     // Add the layout tokens
-    tokens = layout(insertLayoutTokens(tokens));
+    tokens = insertLayoutTokens(tokens);
+    EOF = tokens.pop();
   };
 
-  this.lex = function(table, state) {
-    // Provide a single token to the owning process
-    if (! tokens.length) return undefined;
-
-    var tok = tokens.shift();
+  function unwrapToken(tok) {
     if (tok.loc) {
-      this.yyloc = this.yylloc = tok.loc;
-      this.yylineno = tok.loc.last_line;
+      self.yyloc = self.yylloc = tok.loc;
+      self.yylineno = tok.loc.last_line - 1;
     }
-    this.yytext = tok.yytext;
+    self.yytext = tok.yytext;
 
     return tok.tok;
+  }
+
+  this.lex = function(parser, state) {
+    console.log("called", upcoming);
+    // Provide a single token to the owning process
+    // if (! tokens.length) return undefined;
+    if (upcoming.length)
+      return unwrapToken(upcoming.shift());
+
+    function isParseError(tok) {
+      // console.log('HOREY SHIET', tok);
+      var symbol = parser.symbols_[tok.tok] || tok.tok;
+      var action = parser.table[state] && parser.table[state][symbol];
+
+      console.log(symbol, action);
+
+      return typeof action === 'undefined' || !action.length || !action[0];
+    }
+
+    upcoming = next(tokens, stack, isParseError);
+
+    if (upcoming.length) {
+      return unwrapToken(upcoming.shift());
+    } else {
+      var tok = EOF;
+      EOF = undefined;
+      return unwrapToken(tok);
+    }
   };
 
   this.showPosition = function() {
@@ -186,6 +279,5 @@ function LayoutTransformer(lexer) {
 
 module.exports = {
   LayoutTransformer: LayoutTransformer,
-  insertLayoutTokens: insertLayoutTokens,
-  layout: layout
+  insertLayoutTokens: insertLayoutTokens
 };

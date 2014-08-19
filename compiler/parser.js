@@ -278,14 +278,17 @@ nt('expression',
 
 var generator = new Generator(grammar);
 
-// Modify the generator to send the current state & parse table to the lexer
+// Modify the generator to send the current parser & state to the lexer
 // This is done such that we can implement parse-error(t)
-// TODO: Actually implement parse-error(t)
 var oldGenerateModuleExpr = generator.generateModuleExpr;
 generator.generateModuleExpr = function() {
   var moduleExpr = oldGenerateModuleExpr.apply(this, arguments);
-  return moduleExpr.replace('lexer.lex()', 'lexer.lex(table, state)');
+  return moduleExpr.replace('lexer.lex()', 'lexer.lex(self, state)').
+    replace('return token;', 'console.log(token); return token;').
+    replace('action = table[state] && table[state][symbol];', 'action = table[state] && table[state][symbol]; console.log("action: ", action);');
 };
+
+console.log(generator.generateModuleExpr());
 
 // Create the parser
 var parser = generator.createParser();

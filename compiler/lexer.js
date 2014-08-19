@@ -12,6 +12,7 @@ var oldAddRule = lexer.addRule;
 lexer.addRule = function(re, fn) {
   /* Record the current location in the file */
   return oldAddRule.call(lexer, re, function(lexeme) {
+    this.yytext = lexeme;
     // Update the location in the file
     var yyloc = {
       first_column: this.yyloc.last_column,

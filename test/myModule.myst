@@ -3,11 +3,11 @@ let x = 10
 let fact x = xol * fact (x - 1)
 
 let getS {s:x, p:[a, b]} =
-      x |> map f %
+      x |> map (fn x -> y) %
         |> join '...' %
 
 let transform y =
-      y |> map f %
+      y |> map (fn x -> y) %
         |> join ' ' %
         |> drop 3 %
         |> console.log %
