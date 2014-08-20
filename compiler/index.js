@@ -1,30 +1,20 @@
 var escodegen = require('escodegen');
-var esmangle = require('esmangle');
 
+/* Reading in Myst code */
+var lexer = require('./lexer.js');
+var layout = require('./layout.js');
 var parser = require('./parser.js');
+
+/* Simplifying & Optimizing */
 var desugarer = require('./desugar.js');
+
+/* Emitting JavaScript code */
 var transformer = require('./transformer.js');
 
-function compile(source, minify) {
-  var parsed = parser.parse(source);
+function compile(source) {
+  var parsed = layout.parserWrapper(lexer.lexer, parser.parser, source);
   var desugared = desugarer.desugar(parsed);
   var transformed = transformer.transform(desugared);
-  
-  if (minify) {
-    var optimized = esmangle.optimize(transformed, null);
-    var mangled = esmangle.mangle(optimized);
-
-    return escodegen.generate(mangled, {
-      format: {
-        renumber: true,
-        hexadecimal: true,
-        escapeless: true,
-        compact: true,
-        semicolons: false,
-        parentheses: false
-      }
-    });
-  }
 
   return escodegen.generate(transformed);
 }

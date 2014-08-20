@@ -52,11 +52,25 @@ var Syntax = {
     };
   },
 
+  ObjectDestructure: function(properties) {
+    return {
+      type: 'ObjectDestructure',
+      properties: properties
+    };
+  },
+
   PropertyDestructure: function(property, as) {
     return {
       type: 'PropertyDestructure',
       property: property,
       as: as
+    };
+  },
+
+  ArrayDestructure: function(items) {
+    return {
+      type: 'ArrayDestructure',
+      items: items
     };
   },
 
@@ -113,5 +127,12 @@ var Syntax = {
     };
   }
 };
+
+// isObject etc functions
+Object.keys(Syntax).forEach(function(type) {
+  Syntax['is'+type] = function(o) {
+    return typeof o === 'object' && o.type === type;
+  }
+});
 
 module.exports = Syntax;

@@ -126,91 +126,9 @@ function next(remaining, stack, isParseError) {
   return out;
 }
 
-var parserWrapper = function (lexer, parser, input) {
-  // Run the lexer
-  lexer.setInput(input);
-
-  var tok, tokens = [];
-  while (typeof (tok = lexer.lex()) !== 'undefined')
-    tokens.push(tok);
-
-  var EOF = tokens.pop();
-
-  // Add the layout tokens
-  tokens = insertLayoutTokens(tokens);
-
-  // Create the parser state
-  var stack = [];
-  var upcoming = [];
-  var state = initParser(parser);
-  var loc = { // Updated as new tokens come in
-    first_line: 1,
-    last_line: 1,
-    first_column: 0,
-    last_column: 0
-  };
-  while (true) {
-    if (! upcoming.length)
-      upcoming = next(tokens, stack, isParseError);
-
-    var status;
-    if (upcoming.length) {
-      var tok = upcoming.shift();
-      if (tok.loc)
-        loc = tok.loc;
-      else
-        tok.loc = loc;
-
-      console.log(tok.tok);
-
-      status = parse(state, tok);
-    } else {
-      if (EOF.loc)
-        loc = EOF.loc;
-      else
-        EOF.loc = loc;
-
-      status = parse(state, EOF);
-      EOF = undefined;
-    }
-
-    switch (status.event) {
-      case 'error':
-        /* Generate the code error display */
-        var token = status.token;
-        var expected = status.expected;
-        var indent = loc.first_column;
-        var display = input.split('\n')[loc.first_line - 1];
-        display += '\n' + Array(indent + 1).join('-') + '^';
-
-        /* Create the error message */
-        var errorString = '';
-        errorString += 'Parse error on line ' + loc.first_line + ':\n';
-        errorString += display + '\n';
-        errorString += 'Expecting ' + expected.join(', ') + ', got \'' + tok.tok + '\'';
-
-        /* Throw the error */
-        throw new Error(errorString);
-      case 'done':
-        return status.value; // We are done parsing - return the AST
-      case 'continue':
-        state = status.state; // Save the state, and continue
-        break;
-      default:
-        throw new Error('Unexpected return type from parser!');
-    }
-  }
-
-  // isParseError returns true if the currently parsed tokens, plus
-  // the token tok, is not a valid prefix of the Myst grammar. Otherwise,
-  // it returns false.
-  function isParseError(tok) {
-    return parse(state, tok).event === 'error';
-  }
-};
 
 // Rewrite of the active parser algorithm used by jison, to avoid state
-var initParser = function initParser(parser) {
+function initParser(parser) {
   // Create the initial state for the parser
   // This can be passed as pstate to parser(pstate, token) to
   // run the parser
@@ -236,7 +154,7 @@ var initParser = function initParser(parser) {
   );
 }
 
-var parse = function parse(pstate, token) {
+function parse(pstate, token) {
   // Run one step of the parser. Will return an object. The object will be either:
   // { type: 'done', value: PARSED_VALUE }
   // or
@@ -381,6 +299,89 @@ var parse = function parse(pstate, token) {
   }
 }
 
+function runParser(lexer, parser, input) {
+  // Run the lexer
+  lexer.setInput(input);
+
+  var tok, tokens = [];
+  while (typeof (tok = lexer.lex()) !== 'undefined')
+    tokens.push(tok);
+
+  var EOF = tokens.pop();
+
+  // Add the layout tokens
+  tokens = insertLayoutTokens(tokens);
+
+  // Create the parser state
+  var stack = [];
+  var upcoming = [];
+  var state = initParser(parser);
+  var loc = { // Updated as new tokens come in
+    first_line: 1,
+    last_line: 1,
+    first_column: 0,
+    last_column: 0
+  };
+  while (true) {
+    if (! upcoming.length)
+      upcoming = next(tokens, stack, isParseError);
+
+    var status;
+    if (upcoming.length) {
+      var tok = upcoming.shift();
+      if (tok.loc)
+        loc = tok.loc;
+      else
+        tok.loc = loc;
+
+      console.log(tok.tok);
+
+      status = parse(state, tok);
+    } else {
+      if (EOF.loc)
+        loc = EOF.loc;
+      else
+        EOF.loc = loc;
+
+      status = parse(state, EOF);
+      EOF = undefined;
+    }
+
+    switch (status.event) {
+      case 'error':
+        /* Generate the code error display */
+        var token = status.token;
+        var expected = status.expected;
+        var indent = loc.first_column;
+        var display = input.split('\n')[loc.first_line - 1];
+        display += '\n' + Array(indent + 1).join('-') + '^';
+
+        /* Create the error message */
+        var errorString = '';
+        errorString += 'Parse error on line ' + loc.first_line + ':\n';
+        errorString += display + '\n';
+        errorString += 'Expecting ' + expected.join(', ') + ', got \'' + tok.tok + '\'';
+
+        /* Throw the error */
+        throw new Error(errorString);
+      case 'done':
+        return status.value; // We are done parsing - return the AST
+      case 'continue':
+        state = status.state; // Save the state, and continue
+        break;
+      default:
+        throw new Error('Unexpected return type from parser!');
+    }
+  }
+
+  // isParseError returns true if the currently parsed tokens, plus
+  // the token tok, is not a valid prefix of the Myst grammar. Otherwise,
+  // it returns false.
+  function isParseError(tok) {
+    return parse(state, tok).event === 'error'; // TODO: Maybe cache to avoid recomputing?
+  }
+}
+
 module.exports = {
-  parserWrapper: parserWrapper
+  runParser: runParser
 };

@@ -1,26 +1,4 @@
-var Generator = require('jison').Generator;
-
-var grammar = {
-  'operators': [
-    ['left', '=', 'LAMBDA'],
-    ['right', '||'],
-    ['right', '&&'],
-    ['nonassoc', '==', '!=', '<', '>', '<=', '>='],
-    ['right', '++'],
-    ['left', '+', '-'],
-    ['left', '*', '/'],
-    ['left', '|>', '>>'],
-    ['right', '<|', '<<'],
-    ['right', '!'],
-    ['left', '.'],
-    ['left', 'NEG'],
-    ['left', 'INVOCATION']
-  ],
-
-  bnf: {
-    start: [['program', 'return $1;']]
-  }
-};
+var Parser = require('jison').Parser;
 
 function BinOp(name) {
   return (function() {
@@ -56,6 +34,30 @@ function nt(nonterminal) {
 
   grammar.bnf[nonterminal] = val;
 }
+
+/** BEGIN GRAMMAR **/
+
+var grammar = {
+  'operators': [
+    ['left', '=', 'LAMBDA'],
+    ['right', '||'],
+    ['right', '&&'],
+    ['nonassoc', '==', '!=', '<', '>', '<=', '>='],
+    ['right', '++'],
+    ['left', '+', '-'],
+    ['left', '*', '/'],
+    ['left', '|>', '>>'],
+    ['right', '<|', '<<'],
+    ['right', '!'],
+    ['left', '.'],
+    ['left', 'NEG'],
+    ['left', 'INVOCATION']
+  ],
+
+  bnf: {
+    start: [['program', 'return $1;']]
+  }
+};
 
 /* Simple Primitive Objects */
 nt('identifier',
@@ -130,8 +132,12 @@ nt('parameter',
 );
 
 nt('destructure',
-   '{ obj_destructure_list }', function() { return $2; },
-   '[ arr_destructure_list ]', function() { return $2; }
+   '{ obj_destructure_list }', function() {
+     return yy.ObjectDestructure($2);
+   },
+   '[ arr_destructure_list ]', function() {
+     return yy.ArrayDestructure($2);
+   }
 );
 
 nt('obj_destructure_list',
@@ -276,25 +282,10 @@ nt('expression',
    'binary',           id
 );
 
-var generator = new Generator(grammar);
+/** END GRAMMAR **/
 
-// Modify the generator to send the current parser & state to the lexer
-// This is done such that we can implement parse-error(t)
-var oldGenerateModuleExpr = generator.generateModuleExpr;
-generator.generateModuleExpr = function() {
-  var moduleExpr = oldGenerateModuleExpr.apply(this, arguments);
-  return moduleExpr.replace('lexer.lex()', 'lexer.lex(self, state)').
-    replace('return token;', 'console.log(token); return token;').
-    replace('action = table[state] && table[state][symbol];', 'action = table[state] && table[state][symbol]; console.log("action: ", action);');
-};
-
-// Create the parser
-var parser = generator.createParser();
+var parser = new Parser(grammar);
 parser.yy = require('./parserScope');
 
-module.exports = {
-  parse: function(input) {
-    return parser.parse(input);
-  },
-  parser: parser
-};
+module.exports = parser;
+

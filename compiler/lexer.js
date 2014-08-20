@@ -129,6 +129,5 @@ lexer.addRule(/$/, function(lexeme) {
   return "EOF";
 });
 
-module.exports = {
-  lexer: lexer
-};
+module.exports = lexer;
+
