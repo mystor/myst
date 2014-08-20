@@ -6,39 +6,6 @@ var preludeImports = Object.keys(prelude).map(function(str) {
 
 var uniqueId = require('./ast').uniqueId;
 
-// Descend into the values named in [val]
-function descendInto(val) {
-  return function(ast) {
-    val.forEach(function(k) {
-      var subItems = ast[k];
-      if (Array.isArray(subItems))
-        ast[k] = desugar(subItems);
-      else
-        ast[k] = desugar(subItems);
-    });
-
-    return ast;
-  };
-}
-
-// Convert a symbol into an identifier
-function identifierify(string) {
-  return (string
-    .replace(':', '_COLON_')
-    .replace('<', '_LT_')
-    .replace('>', '_GT_')
-    .replace('-', '_MINUS_')
-    .replace('+', '_PLUS_')
-    .replace('*', '_TIMES_')
-    .replace('/', '_SLASH_')
-    .replace('%', '_MODULO_')
-    .replace('=', '_EQ_')
-    .replace('!', '_EXCLAM_')
-    .replace('|', '_BAR_')
-    .replace('&', '_AND_')
-    .replace('.', '_DOT_'));
-}
-
 var desugarers = {
   Literal: function(literal) { return [0, literal]; },
 
