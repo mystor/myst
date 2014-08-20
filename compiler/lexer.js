@@ -46,7 +46,7 @@ lexer.addRule = function(re, fn) {
     if (tok) {
       return {
         tok: tok,
-        yytext: this.yytext,
+        value: this.yytext,
         loc: yyloc
       };
     } else {

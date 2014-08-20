@@ -1,7 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var jison = require('jison');
-var prettyjson = require('prettyjson');
+// var prettyjson = require('prettyjson');
 var compiler = require('myst/compiler');
 
 var p = path.join(__dirname, 'myModule.myst');
@@ -20,7 +20,12 @@ while (typeof (tok = layoutTransformer.lex()) !== 'undefined')
 console.log('***********************');
 
 var parser = require('myst/compiler/parser');
-console.log(prettyjson.render(parser.parse(code), {}));
+var lexer = require('myst/compiler/lexer');
+var layout = require('myst/compiler/layout');
+
+console.log(
+    JSON.stringify(layout.parserWrapper(lexer.lexer, parser.parser, code), null, 2));
+// console.log(JSON.stringify(parser.parse(code), null, 2));
 
 // var parser = require('myst/compiler/parser');
 // console.log(prettyjson.render(parser.parse(code), {}));

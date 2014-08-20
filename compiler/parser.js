@@ -47,7 +47,7 @@ function nt(nonterminal) {
   var val = [];
 
   for (var i=2; i<arguments.length; i+=2) {
-    var newVal = [arguments[i-1], "$$ = (" + arguments[i].toString() + ")(); $$.loc = @0;"];
+    var newVal = [arguments[i-1], "$$ = (" + arguments[i].toString() + ")(); /* $$.loc = @0; */"];
     if (arguments[i].prec)
       newVal.push({prec: arguments[i].prec});
 
@@ -91,7 +91,7 @@ nt('statements',
      return [$1];
    },
    'statements ; statement', function() {
-     $1.push($3); return $1;
+     var x = $1.slice(); x.push($3); return x;
    }
 );
 
@@ -120,7 +120,7 @@ nt('parameter_list',
      return [$1];
    },
    'parameter_list parameter', function() {
-     $1.push($2); return $1;
+     var x = $1.slice(); x.push($2); return x;
    }
 );
 
@@ -137,7 +137,7 @@ nt('destructure',
 nt('obj_destructure_list',
    'obj_destructure', function() { return [$1]; },
    'obj_destructure_list , obj_destructure', function() {
-     $1.push($3); return $1;
+     var x = $1.slice(); x.push($3); return x;
    }
 );
 
@@ -153,7 +153,7 @@ nt('obj_destructure',
 nt('arr_destructure_list',
    'parameter', function() { return [$1]; },
    'arr_destructure_list , parameter', function() {
-     $1.push($3); return $1;
+     var x = $1.slice(); x.push($3); return x;
    }
 );
 
@@ -198,7 +198,7 @@ nt('argument_list',
      return [$1];
    },
    'argument_list argument', function() {
-     $1.push($2); return $1;
+     var x = $1.slice(); x.push($2); return x;
    }
 );
 
@@ -234,7 +234,7 @@ nt('object_properties',
      return [$1];
    },
    'object_properties , object_property', function() {
-     $1.push($3); return $1;
+     var x = $1.slice(); x.push($3); return x;
    }
 );
 
@@ -255,7 +255,7 @@ nt('array_items',
      return [$1];
    },
    'array_items , expression', function() {
-     $1.push($3); return $1;
+     var x = $1.slice(); x.push($3); return x;
    }
 );
 
@@ -288,17 +288,9 @@ generator.generateModuleExpr = function() {
     replace('action = table[state] && table[state][symbol];', 'action = table[state] && table[state][symbol]; console.log("action: ", action);');
 };
 
-console.log(generator.generateModuleExpr());
-
 // Create the parser
 var parser = generator.createParser();
 parser.yy = require('./parserScope');
-
-// Attach the lexer
-var lexer = require('./lexer').lexer;
-var LayoutTransformer = require('./layout').LayoutTransformer;
-var layoutTransformer = new LayoutTransformer(lexer);
-parser.lexer = layoutTransformer;
 
 module.exports = {
   parse: function(input) {
