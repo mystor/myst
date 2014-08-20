@@ -1,3 +1,4 @@
+var Syntax = require('./parserScope');
 var prelude = require('../prelude');
 var preludeImports = Object.keys(prelude).map(function(str) {
   return { type: 'Identifier', name: str };
@@ -39,229 +40,182 @@ function identifierify(string) {
 }
 
 var desugarers = {
-  Program: function(ast) {
-    // Add a new import for prelude if prelude isn't explicitly
-    // imported somewhere else.
-    var explicitPrelude = ast.imports.some(function(imprt) {
-      return imprt.target.value === 'myst/prelude';
-    });
+  Literal: function(literal) { return [0, literal]; },
 
-    if (! explicitPrelude) {
-      ast.imports.push({
-        type: 'Import',
-        target: {type: 'Literal', value: 'myst/prelude'},
-        names: preludeImports,
-        as: null
-      });
+  Identifier: function(identifier) { return [0, identifier]; },
+
+  Program: function(program) {
+    return [0, Syntax.Program(desugar(program.body))];
+  },
+
+  Declaration: function(declaration, state) {
+    switch (state) {
+      case 1:
+        if (Syntax.isFunctionBind(declaration.target)) {
+          return [2, Syntax.Declaration(
+            declaration.target.name,
+            [Syntax.Lambda(
+              declaration.target.parameters,
+              declaration.value
+            )]
+          )];
+        } else if (Syntax.isObjectDestructure(declaration.target)) {
+          var uid = uniqueId();
+          var decls = [Syntax.Declaration(uid, declaration.value)];
+          decls = decls.concat(declaration.target.properties.map(function(property) {
+            return Syntax.Declaration(
+              property.as,
+              [ Syntax.Member(uid, property.property) ]
+            );
+          }));
+          return [0, desugar(decls)];
+        } else if (Syntax.isArrayDestructure(declaration.target)) {
+          var uid = uniqueId();
+          var decls = [Syntax.Declaration(uid, declaration.value)];
+          decls = decls.concat(declaration.target.items.map(function(item, i) {
+            return Syntax.Declaration(
+              item,
+              [ Syntax.Member(uid, i) ]
+            );
+          }));
+          return [0, desugar(decls)];
+        }
+      case 2:
+        return [0, Syntax.Declaration(desugar(declaration.target), desugar(declaration.value))];
     }
 
-    // Desugar and return a new program!
-    return {
-      type: 'Program',
-      imports: desugar(ast.imports),
-      declarations: desugar(ast.declarations),
-      loc: ast.loc
-    };
+    console.log(state);
+    throw new Error('Invalid State');
   },
 
-  Import: function(ast) {
-    ast.as = ast.as || uniqueId(); // Ensure that _as_ is set.
+  FunctionBind: function() { throw new Error('Invalid FunctionBind'); },
 
-    return ast;
+  ObjectDestructure: function() { throw new Error('Invalid ObjectDestructure'); },
+
+  PropertyDestructure: function() { throw new Error('Invalid PropertyDestructure'); },
+
+  ArrayDestructure: function() { throw new Error('Invalid ArrayDestructure'); },
+
+  Operation: function(operation) {
+    return [1, Syntax.Invocation(
+      Syntax.Identifier(operation.name),
+      [operation.fst, operation.snd]
+    )];
   },
 
-  Declaration: descendInto(['value']),
+  Invocation: function(invocation, state) {
+    switch (state) {
+      case 1:
+        if (invocation.arguments.some(Syntax.isPlaceholder)) {
+          var uids = [];
+          var args = invocation.arguments.map(function(argument) {
+            if (Syntax.isPlaceholder(argument)) {
+              var uid = uniqueId();
+              uids.push(uid);
+              return uid;
+            }
+            return argument;
+          });
 
-  Literal: descendInto([]),
-
-  Identifier: descendInto([]),
-
-  Function: function(ast) {
-    // In a function signature, you can discard variables with placeholders,
-    // give them valid names such that javascript won't complain
-    ast.params = ast.params.map(function(param) {
-      if (param.type === 'Placeholder') {
-        return uniqueId(param.loc);
-      } else {
-        return param;
-      }
-    });
-
-    ast.body = desugar(ast.body);
-    return ast;
-  },
-
-  FunctionBody: descendInto(['declarations', 'returns']),
-
-  Operator: function(ast) {
-    return desugar({
-      type: 'Invocation',
-      callee: {type: 'Identifier', name: ast.callee},
-      arguments: ast.arguments,
-      loc: ast.loc
-    });
-  },
-
-  Invocation: function(ast) {
-    // Wrap functions for partial applications with _ placeholders
-    if (ast.arguments.some(function(arg) { return arg.type === 'Placeholder'; })) {
-      var wrapperParams = [];
-
-      ast.arguments = ast.arguments.map(function(argument) {
-        if (argument.type === 'Placeholder') {
-          var newId = uniqueId(argument.loc);
-          wrapperParams.push(newId);
-          return newId;
+          return [0, Syntax.Lambda(
+            uids,
+            Syntax.Invocation(invocation.callee, args)
+          )];
         } else {
-          return argument;
+          return [2, invocation];
         }
-      });
-
-      return desugar({
-        type: 'Function',
-        params: wrapperParams.slice(),
-        body: {
-          type: 'FunctionBody',
-          returns: ast,
-          declarations: []
-        }
-      });
-    } else {
-      ast.callee = desugar(ast.callee);
-      ast.arguments = desugar(ast.arguments);
-      return ast;
+      case 2:
+        return [0, Syntax.Invocation(
+          desugar(invocation.callee), 
+          desugar(invocation.arguments))];
     }
+
+    throw new Error('Invalid State');
   },
 
-  Do: function(ast) {
-    if (ast.params.length > 0) {
-      var params = ast.params;
-      ast.params = [];
-      return desugar({
-        type: 'Function',
-        params: params,
-        body: {
-          type: 'FunctionBody',
-          returns: ast,
-          declarations: []
-        }
-      });
-    } else {
-      var body = ast.body;
-      var declarations = [];
+  Placeholder: function() { throw new Error('Invalid Placeholder'); },
 
-      var expr = null;
-      while (body.length > 0) {
-        var last = body.pop();
-
-        if (last.type === 'Declaration') {
-          declarations.unshift(last);
-        } else if (last.type === 'Action' || last.type === 'Bind') {
-          var action = last.value;
-          var target = last.target || {type: 'Placeholder'};
-          if (expr) {
-            expr = {
-              type: 'Invocation',
-              callee: {
-                type: 'Member',
-                object: ast.monad,
-                property: {type: 'Identifier', name: 'bind'}
-              },
-              arguments: [
-                action,
-                {
-                  type: 'Function',
-                  params: [target],
-                  body: {
-                    type: 'FunctionBody',
-                    declarations: declarations,
-                    returns: expr
-                  }
-                }
-              ]
-            };
-
-            declarations = [];
-          } else {
-            expr = action;
+  Lambda: function(lambda, state) {
+    switch (state) {
+      case 1: // Move destructures into body as assignments
+        var destructures = [];
+        var parameters = lambda.parameters.map(function(parameter) {
+          if (/Destructure/.test(parameter.type)) {
+            var uid = uniqueId();
+            destructures.push(Syntax.Declaration(parameter, [uid]));
+            return uid;
           }
-        }
-
-      }
-
-      if (expr === null)
-        throw new Error('do blocks must contain at least one non-declaration element');
-
-      return desugar(expr);
-    }
-  },
-
-  // This is a bit ugly - we need to handle transforming dereferencing
-  // statements into the correct operation
-  Member: function(ast) {
-    // Recurse for previous members
-    return desugar({
-      type: 'Invocation',
-      callee: { type: 'Identifier', name: 'get' },
-      arguments: [
-        ast.object,
-        {
-          type: 'Literal',
-          value: ast.property.name
-        }
-      ]
-    });
-  },
-
-  Object: function(ast) {
-    var args = [];
-    ast.properties.forEach(function(prop) {
-      if (prop.key.type === 'Identifier')
-        args.push({
-          type: 'Literal',
-          value: prop.key.name,
-          loc: prop.key.loc
+          return parameter;
         });
-      else
-        args.push(prop.key);
-      args.push(prop.value);
-    });
 
-    return desugar({
-      type: 'Invocation',
-      callee: {
-        type: 'Identifier',
-        name: 'obj'
-      },
-      arguments: args,
-      loc: ast.loc
-    });
+        return [2, Syntax.Lambda(parameters, destructures.concat(lambda.body))];
+
+      case 2: // Decend
+        return [0, Syntax.Lambda(desugar(lambda.parameters), desugar(lambda.body))];
+    }
+
+    throw new Error('Invalid State');
   },
 
-  Array: function(ast) {
-    return desugar({
-      type: 'Invocation',
-      callee: {
-        type: 'Identifier',
-        name: 'arr'
-      },
-      arguments: ast.elements,
-      loc: ast.loc
-    });
+  Member: function(member) {
+    return [1, Syntax.Invocation(
+      Syntax.Identifier('get'),
+      [
+        member.object,
+        Syntax.Literal(member.property)
+      ]
+    )];
+  },
+
+  Object: function(object) {
+    return [1, Syntax.Invocation(
+      Syntax.Identifier('object'), // TODO: Maybe we don't want this?
+      object.properties.map(function(property) {
+        return [property.key, property.value];
+      }).reduce(function(a, b) { return a.concat(b); })
+    )];
+  },
+
+  Array: function(array) {
+    return [1, Syntax.Invocation(
+      Syntax.Identifier('array'),
+      array.items
+    )];
   }
 };
 
+function flatten(list) {
+  var newList = [];
+
+  list.forEach(function(i) {
+    if (Array.isArray(i))
+      newList = newList.concat(i);
+    else
+      newList.push(i);
+  });
+
+  return newList;
+}
+
 function desugar(ast) {
   if (Array.isArray(ast)) // Desugar every element of an array
-    return ast.map(desugar);
+    return flatten(ast.map(desugar));
 
-  if (! desugarers.hasOwnProperty(ast.type))
-    throw new Error('No desugarer for type: ' + ast.type + ' on node: ' + ast);
+  var c = 0, s = 1;
+  while (s) {
+    if (! desugarers.hasOwnProperty(ast.type))
+      throw new Error('No desugarer for type: ' + ast.type + ' on node: ' + ast);
 
-  var x = desugarers[ast.type](ast);
-  return x;
+    var r = desugarers[ast.type](ast, s);
+    s = r[0], ast = r[1];
+
+    if (c++ > 1000) throw new Error('Desugar ' + ast.type + ' not done after 1000 iterations');
+  }
+
+  return ast;
 }
 
 module.exports = {
   desugar: desugar
 };
+

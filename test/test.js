@@ -13,7 +13,12 @@ var parser = require('myst/compiler/parser');
 var lexer = require('myst/compiler/lexer');
 var layout = require('myst/compiler/layout');
 
-console.log(JSON.stringify(layout.runParser(lexer, parser, code), null, 2));
+var ast = layout.runParser(lexer, parser, code);
+
+console.log(JSON.stringify(ast, null, 2));
+
+var desugar = require('myst/compiler/desugar');
+console.log(JSON.stringify(desugar.desugar(ast), null, 2));
 
 /* var compiled = compiler.compile(code);
 

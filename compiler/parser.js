@@ -149,9 +149,9 @@ nt('obj_destructure_list',
 
 nt('obj_destructure',
    'identifier', function() {
-     return yy.PropertyDestructure($1, $1);
+     return yy.PropertyDestructure($1.name, $1);
    },
-   'identifier : parameter', function() {
+   'IDENTIFIER : parameter', function() {
      return yy.PropertyDestructure($1, $3);
    }
 );
