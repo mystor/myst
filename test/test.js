@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var jison = require('jison');
+var escodegen = require('escodegen');
 // var prettyjson = require('prettyjson');
 var compiler = require('myst/compiler');
 
@@ -15,10 +16,17 @@ var layout = require('myst/compiler/layout');
 
 var ast = layout.runParser(lexer, parser, code);
 
-console.log(JSON.stringify(ast, null, 2));
+// console.log(JSON.stringify(ast, null, 2));
 
 var desugar = require('myst/compiler/desugar');
-console.log(JSON.stringify(desugar.desugar(ast), null, 2));
+var desugared = desugar.desugar(ast);
+
+var transform = require('myst/compiler/transformer');
+var transformed = transform.transform(desugared);
+// console.log(JSON.stringify(transformed, null, 2));
+
+var out = escodegen.generate(transformed);
+console.log(out);
 
 /* var compiled = compiler.compile(code);
 

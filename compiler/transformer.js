@@ -1,3 +1,4 @@
+var Syntax = require('./parserScope');
 var jsast = require('./jsast');
 var ast = require('./ast');
 
@@ -14,195 +15,82 @@ var runtimeImport = function() {
 };
 
 var transforms = {
-  Program: function(ast) {
-    var body = [
-      runtimeImport(),
-      {
-        type: 'VariableDeclaration',
-        declarations: transform(ast.declarations),
-        kind: 'var'
-      },
-      {
-        type: 'ExpressionStatement',
-        expression: {
-          type: 'AssignmentExpression',
-          operator: '=',
-          left: jsast.getMembers('module', 'exports'),
-          right: {
-            type: 'ObjectExpression',
-            properties: ast.declarations.map(function(declaration) {
-              return {
-                type: "Property",
-                key: {
-                  type: 'Identifier',
-                  name: declaration.name
-                },
-                value: {
-                  type: 'Identifier',
-                  name: declaration.name
-                },
-                kind: 'var'
-              };
-            })
-          }
-        }
-      }
-    ].concat(transform(ast.imports));
-
-    return {
+  Program: function(program) {
+    return { // TODO Imports
       type: 'Program',
-      body: [
-        {
-          type: 'ExpressionStatement',
-          expression: {
-            type: 'CallExpression',
-            callee: jsast.anonFn([], body),
-            arguments: []
-          }
-        }
-      ]
+      body: transform(program.body)
+    };
+  },
+  
+  Identifier: function(identifier) {
+    return {
+      type: 'Identifier',
+      name: identifier.name
     };
   },
 
-  Import: function(ast) {
-    var declarations = ast.names.map(function(name) {
-      return {
-        type: 'VariableDeclarator',
-        id: transform(name),
-        init: {
-          type: 'MemberExpression',
-          object: transform(ast.as),
-          property: transform(name)
-        }
-      };
-    });
+  Literal: function(literal) {
+    return {
+      type: 'Literal',
+      value: literal.value
+    };
+  },
 
-    declarations.unshift({
-      type: 'VariableDeclarator',
-      id: transform(ast.as),
-      init: {
-        type: 'CallExpression',
-        callee: {
-          type: 'Identifier',
-          name: 'require'
-        },
-        arguments: [
-          transform(ast.target)
-        ]
-      }
-    });
-
+  Declaration: function(decl) {
     return {
       type: 'VariableDeclaration',
-      declarations: declarations,
+      declarations: [
+        {
+          type: 'VariableDeclarator',
+          id: transform(decl.target),
+          init: transform(decl.value[0]) // Desugarer should ensure all Decls have 1 statement
+        }
+      ],
       kind: 'var'
     };
   },
 
-  Declaration: function(ast) {
-    return {
-      type: 'VariableDeclarator',
-      id: {
-        type: 'Identifier',
-        name: ast.name
-      },
-      init: jsast.thunk(transform(ast.value))
-    };
-  },
-
-  Literal: function(ast) {
-    return {
-      type: 'Literal',
-      value: ast.value
-    };
-  },
-
-  Identifier: function(ast) {
-    return {
-      type: 'Identifier',
-      name: ast.name
-    };
-  },
-
-  Function: function(ast) {
+  Invocation: function(invocation) {
     return {
       type: 'CallExpression',
-      callee: jsast.getMembers('Pure'),
-      arguments: [
-        jsast.anonFn(ast.params.map(function(param) {
-          if (param.type !== 'Identifier')
-            throw new Error('Argument type must be an Identifier'); // The transformer should remove all of the other types for you
-
-          return param.name;
-        }), transform(ast.body))
-      ]
+      callee: transform(invocation.callee),
+      arguments: transform(invocation.arguments)
     };
   },
 
-  FunctionBody: function(ast) {
-    if (ast.declarations.length > 0) {
-      return [
-        {
-          type: 'VariableDeclaration',
-          declarations: transform(ast.declarations),
-          kind: 'var'
-        },
-        {
-          type: 'ReturnStatement',
-          argument: transform(ast.returns)
-        }
-      ];
-    } else {
-      return [{
+  Lambda: function(lambda) {
+    var body = lambda.body.map(function(stmt) {
+      if (Syntax.isDeclaration(stmt)) {
+        return transform(stmt);
+      } else {
+        return {
+          type: 'ExpressionStatement',
+          expression: transform(stmt)
+        };
+      }
+    });
+
+    // Return the last entry
+    if (body[body.length - 1].type === 'ExpressionStatement') {
+      var last = body[body.length - 1];
+      body[body.length - 1] = {
         type: 'ReturnStatement',
-        argument: transform(ast.returns)
-      }];
+        argument: last.expression
+      };
     }
-  },
-
-  Invocation: function(ast) {
-    var args = [transform(ast.callee)];
-    args = args.concat(transform(ast.arguments));
 
     return {
-      type: 'CallExpression',
-      callee: jsast.getMembers('call'),
-      arguments: args
-    }
-  },
-
-  Object: function(ast) {
-    return {
-      type: 'CallExpression',
-      callee: jsast.getMembers('Immutable'),
-      arguments: [
-        {
-          type: 'ObjectExpression',
-          properties: transform(ast.properties)
-        }
-      ]
-    };
-  },
-
-  Property: function(ast) {
-    return {
-      type: 'Property',
-      key: transform(ast.key),
-      value: transform(ast.value),
-      kind: 'init'
-    };
-  },
-
-  Array: function(ast) {
-    return {
-      type: 'CallExpression',
-      callee: jsast.getMembers('Immutable'),
-      arguments: [
-        {
-          type: 'ArrayExpression',
-          elements: transform(ast.elements)
-        }
-      ]
+      type: 'FunctionExpression',
+      id: null,
+      params: transform(lambda.parameters),
+      defaults: [],
+      body: {
+        type: 'BlockStatement',
+        body: body
+      },
+      rest: null,
+      generator: false,
+      expression: false
     };
   }
 };

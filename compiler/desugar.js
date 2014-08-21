@@ -48,6 +48,12 @@ var desugarers = {
           return [0, desugar(decls)];
         }
       case 2:
+        // TODO: Check if the lambda is unnecessary
+        return [3, Syntax.Declaration(
+          declaration.target,
+          [ Syntax.Invocation(Syntax.Lambda([], declaration.value), []) ]
+        )];
+      case 3:
         return [0, Syntax.Declaration(desugar(declaration.target), desugar(declaration.value))];
     }
 
@@ -84,9 +90,9 @@ var desugarers = {
             return argument;
           });
 
-          return [0, Syntax.Lambda(
+          return [1, Syntax.Lambda(
             uids,
-            Syntax.Invocation(invocation.callee, args)
+            [ Syntax.Invocation(invocation.callee, args) ]
           )];
         } else {
           return [2, invocation];
