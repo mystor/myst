@@ -23,7 +23,7 @@ var desugared = desugar.desugar(ast);
 
 var transform = require('myst/compiler/transformer');
 var transformed = transform.transform(desugared);
-// console.log(JSON.stringify(transformed, null, 2));
+console.log(JSON.stringify(transformed, null, 2));
 
 var out = escodegen.generate(transformed);
 console.log(out);

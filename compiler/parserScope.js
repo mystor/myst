@@ -36,9 +36,17 @@ var Syntax = {
     };
   },
 
-  Declaration: function(target, value) {
+  Declaration: function(target /* Destructure | Identifier */, value /* [Statement] */) {
     return {
       type: 'Declaration',
+      target: target,
+      value: value
+    };
+  },
+
+  BasicDeclaration: function(target /* Identifier */, value /* Expression */) {
+    return {
+      type: 'BasicDeclaration',
       target: target,
       value: value
     };

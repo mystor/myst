@@ -36,14 +36,14 @@ var transforms = {
     };
   },
 
-  Declaration: function(decl) {
+  BasicDeclaration: function(decl) {
     return {
       type: 'VariableDeclaration',
       declarations: [
         {
           type: 'VariableDeclarator',
           id: transform(decl.target),
-          init: transform(decl.value[0]) // Desugarer should ensure all Decls have 1 statement
+          init: transform(decl.value) // Desugarer should ensure all Decls have 1 statement
         }
       ],
       kind: 'var'
@@ -60,7 +60,7 @@ var transforms = {
 
   Lambda: function(lambda) {
     var body = lambda.body.map(function(stmt) {
-      if (Syntax.isDeclaration(stmt)) {
+      if (Syntax.isBasicDeclaration(stmt)) {
         return transform(stmt);
       } else {
         return {
