@@ -14,7 +14,7 @@ let transform y =
 
 let f x =
     let y = 10
-    return fn x ->
+    drop fn x ->
       f
 
 let a = {x:"alpha", y:"zeta"}

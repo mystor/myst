@@ -8,7 +8,7 @@ var compiler = require('myst/compiler');
 var p = path.join(__dirname, 'myModule.myst');
 var code = fs.readFileSync(p, { encoding: 'UTF-8' });
 
-console.log('***********************');
+// console.log('***********************');
 
 var parser = require('myst/compiler/parser');
 var lexer = require('myst/compiler/lexer');
@@ -23,7 +23,7 @@ var desugared = desugar.desugar(ast);
 
 var transform = require('myst/compiler/transformer');
 var transformed = transform.transform(desugared);
-console.log(JSON.stringify(transformed, null, 2));
+// console.log(JSON.stringify(transformed, null, 2));
 
 var out = escodegen.generate(transformed);
 console.log(out);

@@ -17,7 +17,7 @@ var desugarers = {
 
   Declaration: function(declaration, state) {
     switch (state) {
-      case 1:
+      case 1: // Clean up Binds (function binds & destructures)
         if (Syntax.isFunctionBind(declaration.target)) {
           return [2, Syntax.Declaration(
             declaration.target.name,
@@ -47,8 +47,7 @@ var desugarers = {
           }));
           return [0, desugar(decls)];
         }
-      case 2:
-        // TODO: Check if the lambda is unnecessary
+      case 2: // Simplify into a BasicDeclaration
         if (declaration.value.length === 1 &&
             ! Syntax.isDeclaration(declaration.value[0])) {
           return [0, Syntax.BasicDeclaration(

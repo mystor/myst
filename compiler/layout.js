@@ -334,8 +334,6 @@ function runParser(lexer, parser, input) {
       else
         tok.loc = loc;
 
-      console.log(tok.tok);
-
       status = parse(state, tok);
     } else {
       if (EOF.loc)
