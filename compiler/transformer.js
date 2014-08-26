@@ -21,7 +21,34 @@ var transforms = {
   Program: function(program) {
     return { // TODO Imports
       type: 'Program',
-      body: transform(program.body)
+      body: [
+        {
+          type: 'VariableDeclaration',
+          declarations: [
+            {
+              type: 'VariableDeclarator', // -- Runtime
+              id: {
+                type: 'Identifier',
+                name: '__rt'
+              },
+              init: {
+                type: 'CallExpression',
+                callee: {
+                  type: 'Identifier',
+                  name: 'require'
+                },
+                arguments: [
+                  {
+                    type: 'Literal',
+                    value: 'myst/runtime'
+                  }
+                ]
+              }
+            }
+          ],
+          kind: 'var'
+        }
+      ].concat(transform(program.body))
     };
   },
 
@@ -146,6 +173,24 @@ var transforms = {
         generator: false,
         expression: false
       }]
+    };
+  },
+
+  Object: function(object) {
+    return {
+      type: 'CallExpression',
+      callee: __rt_dot('O'),
+      arguments: object.properties.map(function(property) {
+        return [transform(property.key), transform(property.value)];
+      }).reduce(function(a, b) { return a.concat(b); })
+    };
+  },
+
+  Array: function(array) {
+    return {
+      type: 'CallExpression',
+      callee: __rt_dot('A'),
+      arguments: transform(array.items)
     };
   }
 };

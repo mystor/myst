@@ -185,20 +185,24 @@ var desugarers = {
   },
 
   Object: function(object) {
-    return [1, Syntax.Invocation(
-      Syntax.Identifier('object'), // TODO: Maybe we don't want this?
-      object.properties.map(function(property) {
-        return [property.key, property.value];
-      }).reduce(function(a, b) { return a.concat(b); })
+    return [0, Syntax.Object(
+      desugar(object.properties)
+    )];
+  },
+
+  ObjectProperty: function(prop) {
+    return [0, Syntax.ObjectProperty(
+      prop.key.value,
+      desugar(prop.value)
     )];
   },
 
   Array: function(array) {
-    return [1, Syntax.Invocation(
-      Syntax.Identifier('array'),
-      array.items
+    return [0, Syntax.Array(
+      desugar(array.items)
     )];
   }
+
 };
 
 function flatten(list) {
