@@ -6,6 +6,8 @@ let getS {s:x, p:[a, b]} =
       x |> map (fn x -> y) %
         |> join '...' %
 
+let foo x = x || 'hello there!'
+
 let transform y =
       y |> map (fn x -> y) %
         |> join ' ' %
@@ -60,4 +62,3 @@ let a = {x:"alpha", y:"zeta"}
 -- LET IDENTIFIER = {
 --   { IDENTIFIER : STRING , IDENTIFIER : STRING } }
 -- }
-

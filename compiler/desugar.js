@@ -75,6 +75,45 @@ var desugarers = {
   ArrayDestructure: function() { throw new Error('Invalid ArrayDestructure'); },
 
   Operation: function(operation) {
+    switch (operation.name) {
+      case 'rpipe':
+      return [1, Syntax.Operation(
+        'lpipe',
+        operation.snd,
+        operation.fst)];
+
+      case 'lpipe':
+      return [1, Syntax.Invocation(
+        operation.fst,
+        [ operation.snd ]
+      )];
+
+      case 'rcompose':
+      return [1, Syntax.Operation(
+        'lcompose',
+        operation.snd,
+        operation.fst)];
+
+      case 'lcompose':
+      var uid = uniqueId();
+      return [1, Syntax.Lambda(
+        [ uid ],
+        [
+          Syntax.Invocation(
+            operation.fst,
+            Syntax.Invocation(
+              operation.snd,
+              uid
+            )
+          )
+        ]
+      )];
+
+      case 'or':
+      case 'and':
+      return [0, operation];
+
+    }
     return [1, Syntax.Invocation(
       Syntax.Identifier(operation.name),
       [operation.fst, operation.snd]
@@ -104,7 +143,7 @@ var desugarers = {
         }
       case 2:
         return [0, Syntax.Invocation(
-          desugar(invocation.callee), 
+          desugar(invocation.callee),
           desugar(invocation.arguments))];
     }
 
@@ -196,4 +235,3 @@ function desugar(ast) {
 module.exports = {
   desugar: desugar
 };
-

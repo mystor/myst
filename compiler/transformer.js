@@ -2,17 +2,20 @@ var Syntax = require('./parserScope');
 var jsast = require('./jsast');
 var ast = require('./ast');
 
-var runtime = require('../runtime');
-var runtimeImport = function() {
-  return transform({
-    type: 'Import',
-    target: { type: 'Literal', value: 'myst/runtime' },
-    names: Object.keys(runtime).map(function(str) {
-      return { type: 'Identifier', name: str };
-    }),
-    as: ast.uniqueId()
-  });
-};
+function __rt_dot(name) {
+  return {
+    type: 'MemberExpression',
+    computed: false,
+    object: {
+      type: 'Identifier',
+      name: '__rt'
+    },
+    property: {
+      type: 'Identifier',
+      name: name
+    }
+  };
+}
 
 var transforms = {
   Program: function(program) {
@@ -21,7 +24,7 @@ var transforms = {
       body: transform(program.body)
     };
   },
-  
+
   Identifier: function(identifier) {
     return {
       type: 'Identifier',
@@ -53,13 +56,51 @@ var transforms = {
   Invocation: function(invocation) {
     return {
       type: 'CallExpression',
+      callee: __rt_dot('C'),
+      arguments: [
+        transform(invocation.callee),
+        {
+          type: 'ArrayExpression',
+          elements: transform(invocation.arguments)
+        }
+      ]
+    };
+
+    return {
+      type: 'CallExpression',
       callee: transform(invocation.callee),
       arguments: transform(invocation.arguments)
     };
   },
 
+  Operation: function(operation) {
+    switch (operation.name) {
+      case 'or':
+      return {
+        type: 'LogicalExpression',
+        operator: '||',
+        left: transform(operation.fst),
+        right: transform(operation.snd)
+      };
+
+      case 'and':
+      return {
+        type: 'LogicalExpression',
+        operator: '&&',
+        left: transform(operation.fst),
+        right: transform(operation.snd)
+      };
+
+      default:
+      throw new Error('Can only transform && and || operators');
+    }
+  },
+
   Lambda: function(lambda) {
-    var body = lambda.body.map(function(stmt) {
+    var lBody = lambda.body.slice();
+    var last = lBody.pop();
+
+    var body = lBody.map(function(stmt) {
       if (Syntax.isBasicDeclaration(stmt)) {
         return transform(stmt);
       } else {
@@ -70,27 +111,41 @@ var transforms = {
       }
     });
 
-    // Return the last entry
-    if (body[body.length - 1].type === 'ExpressionStatement') {
-      var last = body[body.length - 1];
-      body[body.length - 1] = {
+    if (Syntax.isBasicDeclaration(last)) {
+      body.push(transform(last));
+    } else {
+      body.push({
         type: 'ReturnStatement',
-        argument: last.expression
-      };
+        argument: Syntax.isInvocation(last) ? {
+          type: 'CallExpression',
+          callee: __rt_dot('T'),
+          arguments: [
+            transform(last.callee),
+            {
+              type: 'ArrayExpression',
+              elements: transform(last.arguments)
+            }
+          ]
+        } : transform(last)
+      });
     }
 
     return {
-      type: 'FunctionExpression',
-      id: null,
-      params: transform(lambda.parameters),
-      defaults: [],
-      body: {
-        type: 'BlockStatement',
-        body: body
-      },
-      rest: null,
-      generator: false,
-      expression: false
+      type: 'CallExpression',
+      callee: __rt_dot('F'),
+      arguments: [{
+        type: 'FunctionExpression',
+        id: null,
+        params: transform(lambda.parameters),
+        defaults: [],
+        body: {
+          type: 'BlockStatement',
+          body: body
+        },
+        rest: null,
+        generator: false,
+        expression: false
+      }]
     };
   }
 };
