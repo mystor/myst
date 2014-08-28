@@ -8,9 +8,18 @@ let getS {s:x, p:[a, b]} =
 
 let foo x = x || 'hello there!'
 
+let foo y = if x then 'apple' else 'pear'
+
+let foo z =
+    if apples == pears then
+       killall apples
+       killall pears
+       5
+
 let transform y =
       y |> map (fn x -> y) %
         |> join ' ' %
+        |> join " " %
         |> drop 3 %
         |> console.log %
 
@@ -19,4 +28,4 @@ let f x =
     drop fn x ->
       f
 
-let a = {x:"alpha", y:"zeta"}
+let a = {x:'alpha', y:'zeta'}

@@ -105,6 +105,15 @@ var Syntax = {
     };
   },
 
+  If: function(cond, consequent, alternate) {
+    return {
+      type: 'If',
+      cond: cond,
+      consequent: consequent,
+      alternate: alternate
+    };
+  },
+
   Member: function(object, property) {
     return {
       type: 'Member',
@@ -140,7 +149,7 @@ var Syntax = {
 Object.keys(Syntax).forEach(function(type) {
   Syntax['is'+type] = function(o) {
     return typeof o === 'object' && o.type === type;
-  }
+  };
 });
 
 module.exports = Syntax;

@@ -174,6 +174,14 @@ var desugarers = {
     throw new Error('Invalid State');
   },
 
+  If: function(ifExpr) {
+    return [0, Syntax.If(
+      desugar(ifExpr.cond),
+      desugar(ifExpr.consequent),
+      desugar(ifExpr.alternate)
+    )];
+  },
+
   Member: function(member) {
     return [1, Syntax.Invocation(
       Syntax.Identifier('get'),

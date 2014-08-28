@@ -176,6 +176,87 @@ var transforms = {
     };
   },
 
+  If: function(ifExpr) {
+    if (ifExpr.consequent.length === 1 &&
+        ifExpr.alternate.length === 1) {
+      return {
+        type: 'ConditionalExpression',
+        test: transform(ifExpr.cond),
+        consequent: transform(ifExpr.consequent[0]),
+        alternate: transform(ifExpr.alternate[0])
+      };
+    } else {
+      var thn = ifExpr.consequent.map(function(maybeExpr) {
+        if (Syntax.isBasicDeclaration(maybeExpr)) {
+          return transform(maybeExpr);
+        } else {
+          return {
+            type: 'ExpressionStatement',
+            expression: transform(maybeExpr)
+          };
+        }
+      });
+
+      if (thn.length &&
+          thn[thn.length - 1].type === 'ExpressionStatement') {
+        thn[thn.length - 1] = {
+          type: 'ReturnStatement',
+          argument: thn[thn.length - 1].expression
+        };
+      }
+
+      var els = ifExpr.alternate.map(function(maybeExpr) {
+        if (Syntax.isBasicDeclaration(maybeExpr)) {
+          return transform(maybeExpr);
+        } else {
+          return {
+            type: 'ExpressionStatement',
+            expression: transform(maybeExpr)
+          };
+        }
+      });
+
+      if (els.length &&
+          els[els.length - 1].type === 'ExpressionStatement') {
+        els[els.length - 1] = {
+          type: 'ReturnStatement',
+          argument: els[els.length - 1].expression
+        };
+      }
+
+      return {
+        type: 'CallExpression',
+        callee: {
+          type: 'FunctionExpression',
+          id: null,
+          params: [],
+          defaults: [],
+          body: {
+            type: 'BlockStatement',
+            body: [
+              {
+                type: 'IfStatement',
+                test: transform(ifExpr.cond),
+                consequent: {
+                  type: 'BlockStatement',
+                  body: thn
+                },
+                alternate: {
+                  type: 'BlockStatement',
+                  body: els
+                }
+              }
+            ]
+          },
+          rest: null,
+          generator: false,
+          expression: false
+        },
+        arguments: []
+      };
+    }
+  },
+
   Object: function(object) {
     return {
       type: 'CallExpression',

@@ -222,6 +222,15 @@ nt('lambda',
    })
 );
 
+nt('if',
+   'IF expression THEN { statements }', function() {
+     return yy.If($2, $5, []);
+   },
+   'IF expression THEN { statements } ELSE { statements }', function() {
+     return yy.If($2, $5, $9);
+   }
+);
+
 /* Members */
 nt('member',
    'basic_expression . IDENTIFIER', function() {
@@ -279,7 +288,8 @@ nt('basic_expression',
 nt('expression',
    'basic_expression', id,
    'invocation',       id,
-   'binary',           id
+   'binary',           id,
+   'if',               id
 );
 
 /** END GRAMMAR **/
@@ -288,4 +298,3 @@ var parser = new Parser(grammar);
 parser.yy = require('./parserScope');
 
 module.exports = parser;
-
