@@ -60,6 +60,22 @@ var Syntax = {
     };
   },
 
+  Case: function(expressions, alternatives) {
+    return {
+      type: 'Case',
+      expressions: expressions,
+      alternatives: alternatives
+    };
+  },
+
+  Alternative: function(target, body) {
+    return {
+      type: 'Alternative',
+      target: target,
+      body: body
+    };
+  },
+
   ObjectDestructure: function(properties) {
     return {
       type: 'ObjectDestructure',
