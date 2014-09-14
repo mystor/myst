@@ -231,6 +231,20 @@ var transforms = {
     }
   },
 
+  Member: function(member) {
+    return {
+      type: 'CallExpression',
+      callee: __rt_dot('G'),
+      arguments: [
+        transform(member.object),
+        {
+          type: 'Literal',
+          value: member.property
+        }
+      ]
+    };
+  },
+
   Object: function(object) {
     return {
       type: 'CallExpression',

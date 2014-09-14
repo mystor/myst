@@ -190,12 +190,9 @@ var desugarers = {
   },
 
   Member: function(member) {
-    return [1, Syntax.Invocation(
-      Syntax.Identifier('get'),
-      [
-        member.object,
-        Syntax.Literal(member.property)
-      ]
+    return [0, Syntax.Member(
+      desugar(member.object),
+      member.property
     )];
   },
 
