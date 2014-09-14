@@ -51,6 +51,29 @@ var transforms = {
     };
   },
 
+  Import: function(req) {
+    return {
+      type: 'VariableDeclaration',
+      declarations: [
+        {
+          type: 'VariableDeclarator',
+          id: transform(req.as),
+          init: {
+            type: 'CallExpression',
+            callee: {
+              type: 'Identifier',
+              name: 'require'
+            },
+            arguments: [
+              transform(req.resource)
+            ]
+          }
+        }
+      ],
+      kind: 'var'
+    };
+  },
+
   Identifier: function(identifier) {
     return {
       type: 'Identifier',

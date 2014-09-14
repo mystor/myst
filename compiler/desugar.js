@@ -19,6 +19,13 @@ var desugarers = {
     return [0, Syntax.Program(desugar(program.body))];
   },
 
+  Import: function(req) {
+    return [0, Syntax.Import(
+      desugar(req.resource),
+      desugar(req.as)
+    )];
+  },
+
   Declaration: function(declaration, state) {
     switch (state) {
       case 1: // Clean up Binds (function binds & destructures)

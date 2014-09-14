@@ -2,6 +2,7 @@
 -- These are imported as 'safe', which means that
 -- all calls to JS functions need to be wrapped,
 
+import ./runtime
 -- import './runtime' as rt -- Explicitly call runtime fns
 
 -- Arithmetic Functions

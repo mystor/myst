@@ -99,7 +99,34 @@ nt('statements',
 
 nt('statement',
    'expression', id,
+   'import', id,
    'declaration', id
+);
+
+nt('import_segment',
+   '.', function() { return '.'; },
+   '. .', function() { return '..'; },
+   'IDENTIFIER', function() { return $1; }
+);
+
+nt('import_segments',
+   'import_segment', function() {
+     return [$1];
+   },
+   'import_segments / import_segment', function() {
+     var x = $1.slice(); x.push($3); return x;
+   }
+);
+
+nt('import',
+   'IMPORT import_segments', function() {
+     var as = $2[$2.length - 1];
+     if (as === '.' || as === '..') throw new Error('Last segment in import must be identifier');
+     return yy.Import(yy.Literal($2.join('/')), yy.Identifier($2[$2.length - 1]));
+   },
+   'IMPORT literal AS identifier', function() {
+     return yy.Import($2, $4);
+   }
 );
 
 nt('declaration', // TODO: Add guards

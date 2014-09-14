@@ -36,6 +36,14 @@ var Syntax = {
     };
   },
 
+  Import: function(resource, as) {
+    return {
+      type: 'Import',
+      resource: resource,
+      as: as
+    };
+  },
+
   ExpressionStatement: function(expression) {
     return {
       type: 'ExpressionStatement',
