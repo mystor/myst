@@ -10,12 +10,12 @@ var parser = require('./parser.js');
 var desugarer = require('./desugar.js');
 
 /* Emitting JavaScript code */
-var transformer = require('./transformer.js');
+var emitter = require('./emitter.js');
 
 function compile(source) {
   var parsed = layout.runParser(lexer, parser, source);
   var desugared = desugarer.desugar(parsed);
-  var transformed = transformer.transform(desugared);
+  var transformed = emitter.transform(desugared);
 
   return escodegen.generate(transformed);
 }

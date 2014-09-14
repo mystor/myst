@@ -1,5 +1,4 @@
 var Syntax = require('./parserScope');
-var jsast = require('./jsast');
 var ast = require('./ast');
 
 function __rt_dot(name) {
@@ -83,20 +82,21 @@ var transforms = {
   Invocation: function(invocation) {
     return {
       type: 'CallExpression',
-      callee: __rt_dot('C'),
-      arguments: [
-        transform(invocation.callee),
-        {
-          type: 'ArrayExpression',
-          elements: transform(invocation.arguments)
+      callee: {
+        type: 'MemberExpression',
+        computed: false,
+        object: transform(invocation.callee),
+        property: {
+          type: 'Identifier',
+          name: 'call'
         }
-      ]
-    };
-
-    return {
-      type: 'CallExpression',
-      callee: transform(invocation.callee),
-      arguments: transform(invocation.arguments)
+      },
+      arguments: [
+        {
+          type: 'Literal',
+          value: null
+        }
+      ].concat(transform(invocation.arguments))
     };
   },
 
@@ -124,10 +124,7 @@ var transforms = {
   },
 
   Lambda: function(lambda) {
-    var lBody = lambda.body.slice();
-    var last = lBody.pop();
-
-    var body = lBody.map(function(stmt) {
+    var body = lambda.body.map(function(stmt) {
       if (Syntax.isBasicDeclaration(stmt)) {
         return transform(stmt);
       } else {
@@ -138,41 +135,18 @@ var transforms = {
       }
     });
 
-    if (Syntax.isBasicDeclaration(last)) {
-      body.push(transform(last));
-    } else {
-      body.push({
-        type: 'ReturnStatement',
-        argument: Syntax.isInvocation(last) ? {
-          type: 'CallExpression',
-          callee: __rt_dot('T'),
-          arguments: [
-            transform(last.callee),
-            {
-              type: 'ArrayExpression',
-              elements: transform(last.arguments)
-            }
-          ]
-        } : transform(last)
-      });
-    }
-
     return {
-      type: 'CallExpression',
-      callee: __rt_dot('F'),
-      arguments: [{
-        type: 'FunctionExpression',
-        id: null,
-        params: transform(lambda.parameters),
-        defaults: [],
-        body: {
-          type: 'BlockStatement',
-          body: body
-        },
-        rest: null,
-        generator: false,
-        expression: false
-      }]
+      type: 'FunctionExpression',
+      id: null,
+      params: transform(lambda.parameters),
+      defaults: [],
+      body: {
+        type: 'BlockStatement',
+        body: body
+      },
+      rest: null,
+      generator: false,
+      expression: false
     };
   },
 
