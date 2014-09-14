@@ -16,7 +16,7 @@ function __rt_dot(name) {
   };
 }
 
-var transforms = {
+var emits = {
   Program: function(program) {
     return { // TODO Imports
       type: 'Program',
@@ -47,7 +47,7 @@ var transforms = {
           ],
           kind: 'var'
         }
-      ].concat(transform(program.body))
+      ].concat(emit(program.body))
     };
   },
 
@@ -57,7 +57,7 @@ var transforms = {
       declarations: [
         {
           type: 'VariableDeclarator',
-          id: transform(req.as),
+          id: emit(req.as),
           init: {
             type: 'CallExpression',
             callee: {
@@ -65,7 +65,7 @@ var transforms = {
               name: 'require'
             },
             arguments: [
-              transform(req.resource)
+              emit(req.resource)
             ]
           }
         }
@@ -94,8 +94,8 @@ var transforms = {
       declarations: [
         {
           type: 'VariableDeclarator',
-          id: transform(decl.target),
-          init: transform(decl.value) // Desugarer should ensure all Decls have 1 statement
+          id: emit(decl.target),
+          init: emit(decl.value) // Desugarer should ensure all Decls have 1 statement
         }
       ],
       kind: 'var'
@@ -108,7 +108,7 @@ var transforms = {
       callee: {
         type: 'MemberExpression',
         computed: false,
-        object: transform(invocation.callee),
+        object: emit(invocation.callee),
         property: {
           type: 'Identifier',
           name: 'call'
@@ -119,7 +119,7 @@ var transforms = {
           type: 'Literal',
           value: null
         }
-      ].concat(transform(invocation.arguments))
+      ].concat(emit(invocation.arguments))
     };
   },
 
@@ -129,37 +129,37 @@ var transforms = {
       return {
         type: 'LogicalExpression',
         operator: '||',
-        left: transform(operation.fst),
-        right: transform(operation.snd)
+        left: emit(operation.fst),
+        right: emit(operation.snd)
       };
 
       case 'and':
       return {
         type: 'LogicalExpression',
         operator: '&&',
-        left: transform(operation.fst),
-        right: transform(operation.snd)
+        left: emit(operation.fst),
+        right: emit(operation.snd)
       };
 
       default:
-      throw new Error('Can only transform && and || operators');
+      throw new Error('Can only emit && and || operators');
     }
   },
 
   Lambda: function(lambda) {
     var body = lambda.body.map(function(stmt, idx) {
       if (Syntax.isBasicDeclaration(stmt)) {
-        return transform(stmt);
+        return emit(stmt);
       } else {
         if (idx === lambda.body.length - 1) {
           return {
             type: 'ReturnStatement',
-            argument: transform(stmt)
+            argument: emit(stmt)
           };
         } else {
           return {
             type: 'ExpressionStatement',
-            expression: transform(stmt)
+            expression: emit(stmt)
           };
         }
       }
@@ -168,7 +168,7 @@ var transforms = {
     return {
       type: 'FunctionExpression',
       id: null,
-      params: transform(lambda.parameters),
+      params: emit(lambda.parameters),
       defaults: [],
       body: {
         type: 'BlockStatement',
@@ -185,18 +185,18 @@ var transforms = {
         ifExpr.alternate.length === 1) {
       return {
         type: 'ConditionalExpression',
-        test: transform(ifExpr.cond),
-        consequent: transform(ifExpr.consequent[0]),
-        alternate: transform(ifExpr.alternate[0])
+        test: emit(ifExpr.cond),
+        consequent: emit(ifExpr.consequent[0]),
+        alternate: emit(ifExpr.alternate[0])
       };
     } else {
       var thn = ifExpr.consequent.map(function(maybeExpr) {
         if (Syntax.isBasicDeclaration(maybeExpr)) {
-          return transform(maybeExpr);
+          return emit(maybeExpr);
         } else {
           return {
             type: 'ExpressionStatement',
-            expression: transform(maybeExpr)
+            expression: emit(maybeExpr)
           };
         }
       });
@@ -211,11 +211,11 @@ var transforms = {
 
       var els = ifExpr.alternate.map(function(maybeExpr) {
         if (Syntax.isBasicDeclaration(maybeExpr)) {
-          return transform(maybeExpr);
+          return emit(maybeExpr);
         } else {
           return {
             type: 'ExpressionStatement',
-            expression: transform(maybeExpr)
+            expression: emit(maybeExpr)
           };
         }
       });
@@ -240,7 +240,7 @@ var transforms = {
             body: [
               {
                 type: 'IfStatement',
-                test: transform(ifExpr.cond),
+                test: emit(ifExpr.cond),
                 consequent: {
                   type: 'BlockStatement',
                   body: thn
@@ -266,7 +266,7 @@ var transforms = {
       type: 'CallExpression',
       callee: __rt_dot('G'),
       arguments: [
-        transform(member.object),
+        emit(member.object),
         {
           type: 'Literal',
           value: member.property
@@ -280,7 +280,7 @@ var transforms = {
       type: 'CallExpression',
       callee: __rt_dot('O'),
       arguments: object.properties.map(function(property) {
-        return [transform(property.key), transform(property.value)];
+        return [emit(property.key), emit(property.value)];
       }).reduce(function(a, b) { return a.concat(b); })
     };
   },
@@ -289,21 +289,21 @@ var transforms = {
     return {
       type: 'CallExpression',
       callee: __rt_dot('A'),
-      arguments: transform(array.items)
+      arguments: emit(array.items)
     };
   }
 };
 
-function transform(ast) {
+function emit(ast) {
   if (Array.isArray(ast))
-    return ast.map(transform);
+    return ast.map(emit);
 
-  if (! transforms.hasOwnProperty(ast.type))
+  if (! emits.hasOwnProperty(ast.type))
     throw new Error('The type: ' + ast.type + ' is not supported');
 
-  return transforms[ast.type](ast);
+  return emits[ast.type](ast);
 }
 
 module.exports = {
-  transform: transform
+  emit: emit
 };

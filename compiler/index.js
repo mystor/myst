@@ -15,9 +15,9 @@ var emitter = require('./emitter.js');
 function compile(source) {
   var parsed = layout.runParser(lexer, parser, source);
   var desugared = desugarer.desugar(parsed);
-  var transformed = emitter.transform(desugared);
+  var emitted = emitter.emit(desugared);
 
-  return escodegen.generate(transformed);
+  return escodegen.generate(emitted);
 }
 
 function compileFile(fileName) {
