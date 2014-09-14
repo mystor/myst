@@ -1,8 +1,12 @@
 var Syntax = require('./parserScope');
-var prelude = require('../prelude');
-var preludeImports = Object.keys(prelude).map(function(str) {
-  return { type: 'Identifier', name: str };
-});
+
+var preludeImports = function() {
+    var prelude = require('../prelude');
+
+    return Object.keys(prelude).map(function(str) {
+      return { type: 'Identifier', name: str };
+    });
+};
 
 var uniqueId = require('./ast').uniqueId;
 

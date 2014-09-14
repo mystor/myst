@@ -15,7 +15,6 @@ var transformer = require('./transformer.js');
 function compile(source) {
   var parsed = layout.runParser(lexer, parser, source);
   var desugared = desugarer.desugar(parsed);
-  console.log(JSON.stringify(desugared, null, 2));
   var transformed = transformer.transform(desugared);
 
   return escodegen.generate(transformed);
