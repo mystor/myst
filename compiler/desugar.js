@@ -1,4 +1,6 @@
-var Syntax = require('./parserScope');
+var ast = require('./ast');
+var uniqueId = ast.uniqueId;
+var Syntax = ast.Syntax;
 
 var preludeImports = function() {
     var prelude = require('../prelude');
@@ -7,8 +9,6 @@ var preludeImports = function() {
       return { type: 'Identifier', name: str };
     });
 };
-
-var uniqueId = require('./ast').uniqueId;
 
 var desugarers = {
   Literal: function(literal) { return [0, literal]; },

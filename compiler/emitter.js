@@ -1,5 +1,5 @@
-var Syntax = require('./parserScope');
 var ast = require('./ast');
+var Syntax = ast.Syntax;
 
 function __rt_dot(name) {
   return {

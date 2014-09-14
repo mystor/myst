@@ -2,7 +2,7 @@
 
 // Match against structure!
 
-var Syntax = require('./parserScope');
+var Syntax = require('./ast').Syntax;
 
 function assert(c) {
   if (!c) throw new Error("Assertion failed!");

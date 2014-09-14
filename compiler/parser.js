@@ -324,6 +324,6 @@ nt('expression',
 /** END GRAMMAR **/
 
 var parser = new Parser(grammar);
-parser.yy = require('./parserScope');
+parser.yy = require('./ast').Syntax;
 
 module.exports = parser;
