@@ -124,14 +124,21 @@ var transforms = {
   },
 
   Lambda: function(lambda) {
-    var body = lambda.body.map(function(stmt) {
+    var body = lambda.body.map(function(stmt, idx) {
       if (Syntax.isBasicDeclaration(stmt)) {
         return transform(stmt);
       } else {
-        return {
-          type: 'ExpressionStatement',
-          expression: transform(stmt)
-        };
+        if (idx === lambda.body.length - 1) {
+          return {
+            type: 'ReturnStatement',
+            argument: transform(stmt)
+          };
+        } else {
+          return {
+            type: 'ExpressionStatement',
+            expression: transform(stmt)
+          };
+        }
       }
     });
 
