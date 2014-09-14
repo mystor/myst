@@ -2,8 +2,7 @@
 -- These are imported as 'safe', which means that
 -- all calls to JS functions need to be wrapped,
 
-import './runtime' as rt -- Explicitly call runtime fns
-import 'mori' as m
+-- import './runtime' as rt -- Explicitly call runtime fns
 
 -- Arithmetic Functions
 let add = rt.add       -- +
@@ -26,15 +25,13 @@ let gt = rt.gt   -- >
 -- Box
 let ptr = rt.ptr
 
-y = { a b c }
-
 -- Basic mori functions
 let asMystObj o =
     if rt.isJSObject o
        then I.Map o
        else if rt.isJSArray o
-            then I.Vector o
-            else o
+               then I.Vector o
+               else o
 
 let assoc o k v =
     (rt.getRaw (asMystObj o) 'set') k v

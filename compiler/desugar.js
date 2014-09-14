@@ -111,8 +111,11 @@ var desugarers = {
 
       case 'or':
       case 'and':
-      return [0, operation];
-
+      return [0, Syntax.Operation(
+        operation.name,
+        desugar(operation.fst),
+        desugar(operation.snd)
+      )];
     }
     return [1, Syntax.Invocation(
       Syntax.Identifier(operation.name),

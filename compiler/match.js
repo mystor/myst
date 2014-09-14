@@ -21,9 +21,43 @@ function isLiteral(x) {
 }
 
 
+function generateSwitch(matchMatrix, column, values, row) {
+  var conds = matchMatrix.map(function(row) {
+    return row[column];
+  });
+
+  var options = getOptions(conds);
+
+  options.reduceRight(function(memo, option) {
+  });
+}
+
+/* [Destructure] -> [{cond: Destructure, nums: [int]}] */
+// Refine to unique destructures, and list branches which are satisfied by each
+function getOptions(conds) {
+  // Returns all unique conditions, and the rows which match them
+  var unique = conds.reduce(function(memo, cond, condnum) {
+    // { cond: cond, nums: [] }
+    var found = false;
+    memo = memo.map(function(item) {
+      if (sameBranch(item.cond, cond)) {
+        item.nums.append(condnum);
+        found = true;
+      }
+      return item;
+    });
+
+    if (!found) memo.append({ cond: cond, nums: [condnum] });
+
+    return memo;
+  }, []);
+
+  return unique;
+}
+
+
 function necessaryColumn(matchMatrix) {
   assert(matchMatrix.length > 0);
-
 
   var ranks = matchMatrix.reduce(function(memo, row, rownum) {
     return memo.map(function(rank, i) {

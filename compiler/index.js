@@ -1,3 +1,4 @@
+var fs = require('fs');
 var escodegen = require('escodegen');
 
 /* Reading in Myst code */
@@ -12,14 +13,20 @@ var desugarer = require('./desugar.js');
 var transformer = require('./transformer.js');
 
 function compile(source) {
-  var parsed = layout.parserWrapper(lexer.lexer, parser.parser, source);
+  var parsed = layout.runParser(lexer, parser, source);
   var desugared = desugarer.desugar(parsed);
+  console.log(JSON.stringify(desugared, null, 2));
   var transformed = transformer.transform(desugared);
 
   return escodegen.generate(transformed);
 }
 
-module.exports = {
-  compile: compile
-};
+function compileFile(fileName) {
+  var source = fs.readFileSync(fileName, { encoding: 'utf-8' });
+  return compile(source);
+}
 
+module.exports = {
+  compile: compile,
+  compileFile: compileFile
+};

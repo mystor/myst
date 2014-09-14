@@ -1,0 +1,65 @@
+declare suite, test
+import assert
+
+suite 'math' fn ->
+      test 'basic operations' fn ->
+            assert.equal (1 + 1) 2
+            assert.equal (5 - 3) 2
+            assert.equal (5 * 5) 25
+            assert.equal (15 / 3) 5
+
+      test 'precidence' fn ->
+            assert.equal (1 + 1 * 5) 6
+            assert.equal (1 - 1 * 5) (-4)
+
+suite 'variables' fn ->
+      test 'let binds' fn ->
+           let x = 5
+           assert.equal x 5
+
+      test 'multiple let statements' fn ->
+           let x = 5
+           let y = 10
+           assert.equal x 5
+           assert.equal y 10
+
+      test 'cannot re-assign values' fn -> -- This will be prevented at compiletime
+           compileErr 'let x = 5\n' ++
+                      'let x = 10'
+
+      test 'if isolates values' fn ->
+           let x = 5
+           if true
+              then let x = 10
+                   assert.equal x 10
+           assert.equal x 5
+
+      test 'cannot use values defined in inner scope' fn ->
+           compileErr 'if true\n' ++
+                      '   then let x = 10\n' ++
+                      '   else let x = 20\n' ++
+                      'x'
+
+      test 'lambda isolates values' fn ->
+           let x = 5
+           (fn -> let x = 10
+                  assert.equal x 10)!
+           assert.equal x 5
+
+      test 'lambda sees enclosing scope' fn ->
+           let x = 5
+           (fn -> assert.equal x 5)!
+
+      test 'if sees enclosing scope' fn ->
+           let x = 10
+           if true
+              then assert.equal x 10
+
+suite 'functions' fn ->
+      test 'nullary function application' fn ->
+           assert.notEqual (fn -> 5) 5
+           assert.equal (fn -> 5)! 5
+
+      test 'function application' fn ->
+           assert.equal ((fn x -> x) 5) 5
+           assert.equal ((fn x y -> x + y) 5 10) 15

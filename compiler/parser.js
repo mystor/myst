@@ -274,6 +274,35 @@ nt('array_items',
    }
 );
 
+nt('alt_cond',
+   'object_cond', id,
+   'array_cond', id,
+   'identifier', id,
+   'placeholder', id,
+   'literal', id
+);
+
+nt('alternative',
+   'alt_cond -> { statements }', function() {
+     return yy.Alternative($1, $4);
+   }
+);
+
+nt('alternative_list',
+   'alternative', function() {
+     return [$1];
+   },
+   'alternative_list ; alternative', function() {
+     var x = $1.slice(); x.push($3); return x;
+   }
+);
+
+nt('case',
+   'CASE expression OF { alternative_list }', function() {
+     return yy.Case($2, $5);
+   }
+);
+
 nt('basic_expression',
    '( expression )', function() {return $2;},
    'identifier', id,

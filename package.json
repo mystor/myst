@@ -13,7 +13,8 @@
     "esmangle": "^1.0.1",
     "jison": "^0.4.14",
     "lex": "^1.7.6",
-    "mori": "^0.2.9"
+    "mori": "^0.2.9",
+    "nomnom": "^1.8.0"
   },
   "devDependencies": {
     "jison": "^0.4.13"

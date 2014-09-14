@@ -68,10 +68,10 @@ var Syntax = {
     };
   },
 
-  Alternative: function(target, body) {
+  Alternative: function(targets, body) {
     return {
       type: 'Alternative',
-      target: target,
+      targets: targets,
       body: body
     };
   },

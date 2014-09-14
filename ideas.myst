@@ -1,0 +1,67 @@
+-- The Myst Programming Language
+import fs
+-- or --
+import "fs" as fsPrime
+-- or --
+from "fs" import readFile
+-- or --
+import myst/math -- Imports "myst/math" as math
+
+-- Declare variables using let
+let x = 5
+let y = 10
+let z = x + y + 5 -- 20
+
+-- Define functions using
+let f x = x * x
+
+-- And call them
+f 5 -- 25
+
+-- Creating pipelines
+let transform y =
+    y |> map f %                  -- Square each element
+      |> filter (fn x -> x > 5) % -- Ensure each element is greater than 5
+      |> first                    -- Get the first element
+
+-- Or using function composition
+let transform = map f % >> filter (fn x -> x > 5) %
+                        >> first
+
+-- You can also do this in the other direction
+let transform y = first <| filter (fn x -> x > 5) % <| map f % <| y
+
+-- Binding can also occur
+let fact 0 = 1
+    fact n = n * fact (n - 1)
+
+-- This also works with variable arities
+let awesome f = map f %
+    awesome f x = map f x
+
+awesome f -- fn x -> map f x
+awesome f x -- map f x
+
+
+let fact x = case x of
+                  0 -> 1
+                  n -> n * fact (n - 1)
+
+let fact = fn x ->
+              case x of
+                   0 -> 1
+                   n -> n * fact (n - 1)
+
+let fact = fn x ->
+              if x == 0
+                 then 1
+                 else n * fact (n - 1)
+
+let fact_ 0 acc = acc
+    fact_ n acc = recur (n - 1) (acc * n)
+
+let map f [] = []
+    map f [x, &xs] = [f x] ++ map f xs
+
+
+let transform ["hi", x] = "Welcome!" ++ x
