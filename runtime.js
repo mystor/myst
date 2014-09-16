@@ -1,96 +1,58 @@
-var mori = require('mori');
+var immutable = require('immutable');
 
-/*
- * Define a Myst-Aware function (jsifies its return value)
- */
-function Fn (fn, lazy) {
-  if (typeof fn !== 'function')
-    throw new Error('Attempt to declare an ' + typeof fn + ' as a Myst function');
+function add(a, b) {
+  if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Cannot add non-numbers');
+  return a + b;
+}
 
-  var jsFn = function() {
-    return jsify(fn.apply(this, arguments)); // TODO: Trampoline
-  };
+function sub(a, b) {
+  if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Cannot sub non-numbers');
+  return a - b;
+}
 
-  jsFn.$$myst = fn;
-  jsFn.$$lazy = lazy;
+function mul(a, b) {
+  if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Cannot mul non-numbers');
+  return a * b;
+}
 
-  return jsFn;
-};
+function div(a, b) {
+  if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Cannot div non-numbers');
+  return a / b;
+}
 
-/*
- * Call a function in a Myst context
- */
-function call (fn, n, x, noTrampoline) {
-  if (typeof fn !== 'function')
-    throw new Error('Attempt to call a non-function');
+function modulo(a, b) {
+  if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Cannot modulo non-numbers');
+  return a % b;
+}
 
-  var lazy = fn.$$lazy || [];
-  var nx = Array(n);
-  for (var i=0; i<n; i++) {
-    if (! lazy[i])
-      nx[i] = x(i);
+function binAnd(a, b) {
+  if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Cannot binAnd non-numbers');
+  return a & b;
+}
+
+function binOr(a, b) {
+  if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Cannot binOr non-numbers');
+  return a | b;
+}
+
+
+
+function get(object, property) {
+  // TODO: Add support for accessing properties of immutable objects
+  if (object.__unbound)
+    return get(object.__unbound, property);
+
+  var val = object[property];
+  if (typeof val === 'function') { // Make sure that this is bound correctly
+    var bound = Function.prototype.bind.call(val, object);
+    bound.__unbound = val;
+    return bound;
   }
 
-  if (fn.$$myst) { // Establish a trampoline
-    var val = fn.$$myst.apply(null, nx);
-    if (! noTrampoline) {
-      while (! isContinuation(val))
-        val = val();
-    }
-    return val;
-  } else {
-    return fn.apply(null, nx);
-  }
-}
-
-/*
- * Wrap tail-calls in continuations
- */
-function tail_call(fn, n, x) {
-  var continuation = function() {
-    return call(fn, n, x, true);
-  };
-
-  continuation.$$continuation = true;
-
-  return continuation;
-}
-
-/*
- * Immutable "Myst" objects
- */
-function jsify(object) { // Forces an object to be js-like
-  if (isMystObj(object)) {
-    return mori.clj_to_js(object);
-  }
-
-  return object;
-}
-
-function isMystObj(object) {
-  return mori.is_collection(object) && object.$$mystobj === true;
-}
-
-// Basic Data struct
-function object() {
-  var o = mori.map.apply(null, arguments);
-  o.$$mystobj = true;
-  return o;
-}
-
-function array() {
-  var a = mori.vector.apply(null, arguments);
-  a.$$mystobj = true;
-  return a;
+  return val;
 }
 
 module.exports = {
-  F: Fn,                // F -> Defines a Myst-aware function
-  C: call,              // C -> Call a function
-  T: tail_call,         // T -> TailCall a function
-  O: object,            // O -> Define an object MystObj
-  A: array,             // A -> Define an array MystObj
-
-  jsify: jsify,         // Force a MystObj into JS-form
-  isMystObj: isMystObj  // Check if an object is a valid MystObj
+  G: get,
+  get: get
 };
