@@ -1,19 +1,22 @@
 -- prelude.myst - The built-in functions for Myst
--- These are imported as 'safe', which means that
--- all calls to JS functions need to be wrapped,
 
-import ./runtime
--- import './runtime' as rt -- Explicitly call runtime fns
+import './runtime' as rt
+import immutable
 
 -- Arithmetic Functions
 let add = rt.add       -- +
 let sub = rt.sub       -- -
-let mult = rt.mult     -- *
+let mul = rt.mul       -- *
 let div = rt.div       -- /
 let concat = rt.concat -- ++
 
 let inc x = x + 1
 let dec x = x - 1
+
+-- Binary Functions
+let binAnd = rt.binAnd
+let binOr = rt.binOr
+let binNot = rt.binNot
 
 -- Logical Functions
 let eq = rt.eq   -- ==
@@ -23,28 +26,7 @@ let gte = rt.gte -- >=
 let lt = rt.lt   -- <
 let gt = rt.gt   -- >
 
--- Box
-let ptr = rt.ptr
+let map f x =
 
--- Basic mori functions
-let asMystObj o =
-    if rt.isJSObject o
-       then I.Map o
-       else if rt.isJSArray o
-               then I.Vector o
-               else o
-
-let assoc o k v =
-    (rt.getRaw (asMystObj o) 'set') k v
-
-let dissoc o k =
-    (rt.getRaw (asMystObj o) 'remove') k
-
-let len = rt.len
-
-let isMap o = rt.isJSObject o || rt.isMap o
-
-let isVector o = rt.isJSArray o || rt.isVector o
-
--- Transform objects into JavaScript objects
-let toJs x = rt.jsify x
+let hashMap = immutable.Map
+let emptyMap = hashMap!

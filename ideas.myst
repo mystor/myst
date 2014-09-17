@@ -43,6 +43,9 @@ awesome f -- fn x -> map f x
 awesome f x -- map f x
 
 
+let fact 0 = 1
+    fact x | x > 0 = x * fact (x - 1)
+
 let fact x = case x of
                   0 -> 1
                   n -> n * fact (n - 1)

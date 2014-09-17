@@ -12,17 +12,17 @@ var desugarer = require('./desugar.js');
 /* Emitting JavaScript code */
 var emitter = require('./emitter.js');
 
-function compile(source) {
-  var parsed = layout.runParser(lexer, parser, source);
-  var desugared = desugarer.desugar(parsed);
-  var emitted = emitter.emit(desugared);
+function compile(source, options) {
+  var parsed = layout.runParser(lexer, parser, source, options);
+  var desugared = desugarer.desugar(parsed, options);
+  var emitted = emitter.emit(desugared, options);
 
   return escodegen.generate(emitted);
 }
 
-function compileFile(fileName) {
+function compileFile(fileName, options) {
   var source = fs.readFileSync(fileName, { encoding: 'utf-8' });
-  return compile(source);
+  return compile(source, options);
 }
 
 module.exports = {
