@@ -66,6 +66,21 @@ nt('identifier',
    }
 );
 
+nt('identifierName',
+   'identifier', id,
+   'IMPORT', function() { return yy.Identifier('import'); },
+   'FROM', function() { return yy.Identifier('from'); },
+   'AS', function() { return yy.Identifier('as'); },
+   'TRUE', function() { return yy.Identifier('true'); },
+   'FALSE', function() { return yy.Identifier('false'); },
+   'FN', function() { return yy.Identifier('fn'); },
+   'LET', function() { return yy.Identifier('let'); },
+   'DO', function() { return yy.Identifier('do'); },
+   'IF', function() { return yy.Identifier('if'); },
+   'THEN', function() { return yy.Identifier('then'); },
+   'ELSE', function() { return yy.Identifier('else'); }
+);
+
 nt('literal',
    'TRUE', function() {
      return yy.Literal(true);
@@ -260,8 +275,8 @@ nt('if',
 
 /* Members */
 nt('member',
-   'basic_expression . IDENTIFIER', function() {
-     return yy.Member($1, $3);
+   'basic_expression . identifierName', function() {
+     return yy.Member($1, $3.name);
    }
 );
 

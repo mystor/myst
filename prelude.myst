@@ -1,7 +1,7 @@
 -- prelude.myst - The built-in functions for Myst
 
 import './runtime' as rt
-import immutable
+import 'immutable' as imm
 
 -- Arithmetic Functions
 let add = rt.add       -- +
@@ -26,7 +26,8 @@ let gte = rt.gte -- >=
 let lt = rt.lt   -- <
 let gt = rt.gt   -- >
 
-let map f x =
+let map f x = (imm.Sequence.from x).map f
+let filter f x = (imm.Sequence.from x).filter (f >> rt.truth)
 
-let hashMap = immutable.Map
+let hashMap = imm.Map
 let emptyMap = hashMap!

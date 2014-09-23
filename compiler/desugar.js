@@ -112,10 +112,10 @@ var desugarers = {
         [
           Syntax.Invocation(
             operation.fst,
-            Syntax.Invocation(
+            [ Syntax.Invocation(
               operation.snd,
-              uid
-            )
+              [ uid ]
+            ) ]
           )
         ]
       )];
