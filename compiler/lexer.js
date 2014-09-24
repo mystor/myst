@@ -85,14 +85,14 @@ lexer.addRule(/(?:\s|--[^\n]*\n)+/, function(lexeme) {});
 
 /* Operators */
 lexer.addRule(new RegExp([
-  '++',                                    // Concatenation
-  '>>', '<<', '|>', '<|',                  // Control Flow
-  '->', '<-',                              // Functions and binds
-  '==', '!=', '<=', '>=', '<', '>',        // Comparison
-  '||', '&&', '!',                         // Logical
-  '|', '=', ':', '~', '%', ',', '.', ';',  // Special
-  '+', '-', '*', '/',                      // Arithmetic
-  '{', '}', '(', ')', '[', ']'             // Brackets
+  '++',                                         // Concatenation
+  '>>', '<<', '|>', '<|',                       // Control Flow
+  '->', '<-',                                   // Functions and binds
+  '==', '!=', '<=', '>=', '<', '>',             // Comparison
+  '||', '&&', '!',                              // Logical
+  '|', '=', ':', '~', '%', ',', '.', ';', '#',  // Special
+  '+', '-', '*', '/',                           // Arithmetic
+  '{', '}', '(', ')', '[', ']'                  // Brackets
 ].map(reSanitize).join('|')), function(lexeme) {
   return lexeme;
 });

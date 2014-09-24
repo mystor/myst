@@ -203,6 +203,23 @@ var desugarers = {
     )];
   },
 
+  Method: function(method) {
+    return [0, Syntax.Method(
+      desugar(method.object),
+      method.property
+    )];
+  },
+
+  Merge: function(merge) {
+    return [0, Syntax.Invocation(
+      Syntax.Identifier('merge'),
+      [
+        desugar(merge.into),
+        desugar(merge.from)
+      ]
+    )];
+  },
+
   Object: function(object) {
     return [0, Syntax.Object(
       desugar(object.properties)

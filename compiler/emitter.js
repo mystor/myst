@@ -264,13 +264,25 @@ function makeEmitter(options) {
 
     Member: function(member) {
       return {
+        type: 'MemberExpression',
+        object: emit(member.object),
+        property: {
+          type: 'Literal',
+          value: member.property
+        },
+        computed: true
+      };
+    },
+
+    Method: function(method) {
+      return {
         type: 'CallExpression',
-        callee: __rt_dot('G'),
+        callee: __rt_dot('M'),
         arguments: [
-          emit(member.object),
+          emit(method.object),
           {
             type: 'Literal',
-            value: member.property
+            value: method.property
           }
         ]
       };

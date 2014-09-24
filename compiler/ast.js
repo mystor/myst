@@ -153,6 +153,22 @@ var Syntax = {
     };
   },
 
+  Method: function(object, property) {
+    return {
+      type: 'Method',
+      object: object,
+      property: property
+    };
+  },
+
+  Merge: function(into, from) {
+    return {
+      type: 'Merge',
+      into: into,
+      from: from
+    };
+  },
+
   Object: function(properties) {
     return {
       type: 'Object',

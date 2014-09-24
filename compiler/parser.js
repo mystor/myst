@@ -49,7 +49,8 @@ var grammar = {
     ['left', '|>', '>>'],
     ['right', '<|', '<<'],
     ['right', '!'],
-    ['left', '.'],
+    ['left', '#'],
+    ['left', '.', ':'],
     ['left', 'NEG'],
     ['left', 'INVOCATION']
   ],
@@ -277,6 +278,15 @@ nt('if',
 nt('member',
    'basic_expression . identifierName', function() {
      return yy.Member($1, $3.name);
+   },
+   'basic_expression : identifierName', function() {
+     return yy.Method($1, $3.name);
+   }
+);
+
+nt('merge',
+   'basic_expression # basic_expression', function() {
+     return yy.Merge($1, $3);
    }
 );
 
@@ -352,7 +362,8 @@ nt('basic_expression',
    'literal',    id,
    'lambda',     id,
    'object',     id,
-   'array',      id
+   'array',      id,
+   'merge',      id
 );
 
 
