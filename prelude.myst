@@ -27,6 +27,9 @@ let gte = rt.gte -- >=
 let lt = rt.lt   -- <
 let gt = rt.gt   -- >
 
+-- The merge operator
+let merge = rt.merge -- #
+
 -- Mapping
 let map f x = (imm.Sequence:from x):map f
 let filter f x = (imm.Sequence:from x):filter (f >> rt.truth)
