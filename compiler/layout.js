@@ -46,13 +46,17 @@ function insertLayoutTokens(tokens) {
     // Where the start of a lexeme is preceded only by white space on the same line,
     // this lexeme is preceded by <n> where n is the indentation of the lexeme, provided
     // that it is not, as a consequence of the other rules, preceded by {n}
+    // and that it is not THEN or ELSE
     if (idx === 0 ||                                                  // First token OR
         (! (tokens[idx - 1] instanceof CurlyLayoutToken) &&           // Not preceded by {n} AND
          tokens[idx - 1].loc.last_line < tokens[idx].loc.last_line)) {// First on line
       // Preceded by <n>
-      var n = tokens[idx].loc.first_indent;
-      tokens.splice(idx, 0, new PointyLayoutToken(n));
-      jump++;
+
+      if (tokens[idx].tok !== 'THEN' && tokens[idx].tok !== 'ELSE') {
+        var n = tokens[idx].loc.first_indent;
+        tokens.splice(idx, 0, new PointyLayoutToken(n));
+        jump++;
+      }
     }
 
     // Move to the next token

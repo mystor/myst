@@ -44,10 +44,10 @@ let memoize f =
     let memo = Obj#{a: 'b'}
     fn x ->
        if memo:hasOwnProperty x
-          then getProperty memo x
-          else let res = f x
-               set memo x res
-               res
+       then getProperty memo x
+       else let res = f x
+            set memo x res
+            res
 
 -- Range
 let range = imm.Range
