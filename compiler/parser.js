@@ -8,7 +8,7 @@ function BinOp(name) {
 
 function UnOp(name) {
   return (function() {
-    return yy.Operation(__name__, $2);
+    return yy.UnaryOperation(__name__, $2);
   }).toString().replace('__name__', JSON.stringify(name));
 }
 
@@ -228,7 +228,7 @@ nt('binary',
 );
 
 nt('unary',
-   // '- expression', UnOp('neg'), // TODO: Prescidence
+   '- expression', Prec('NEG', UnOp('neg')), // TODO: Prescidence
    '! expression', UnOp('not')
 );
 
@@ -262,6 +262,9 @@ nt('argument',
 nt('lambda',
    'FN parameter_list -> { statements }', Prec('LAMBDA', function() {
      return yy.Lambda($2, $5);
+   }),
+   'FN -> { statements }', Prec('LAMBDA', function() {
+     return yy.Lambda([], $4);
    })
 );
 
@@ -371,6 +374,7 @@ nt('expression',
    'basic_expression', id,
    'invocation',       id,
    'binary',           id,
+   'unary',            id,
    'if',               id
 );
 

@@ -15,6 +15,14 @@ var Syntax = {
     };
   },
 
+  UnaryOperation: function(name, arg) {
+    return {
+      type: 'UnaryOperation',
+      name: name,
+      arg: arg
+    };
+  },
+
   Identifier: function(name) {
     return {
       type: 'Identifier',

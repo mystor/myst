@@ -380,7 +380,7 @@ function runParser(lexer, parser, input) {
   // the token tok, is not a valid prefix of the Myst grammar. Otherwise,
   // it returns false.
   function isParseError(tok) {
-    return parse(state, tok).event === 'error'; // TODO: Maybe cache to avoid recomputing?
+    return parse(state, tok).event === 'error' && parse(state, {tok: '}'}).event !== 'error'; // TODO: Maybe cache to avoid recomputing?
   }
 }
 

@@ -1,4 +1,4 @@
-declare suite, test
+-- declare suite, test
 import assert
 
 suite 'math' fn ->
@@ -58,7 +58,7 @@ suite 'variables' fn ->
 suite 'functions' fn ->
       test 'nullary function application' fn ->
            assert.notEqual (fn -> 5) 5
-           assert.equal (fn -> 5)! 5
+           assert.equal ((fn -> 5)!) 5
 
       test 'function application' fn ->
            assert.equal ((fn x -> x) 5) 5

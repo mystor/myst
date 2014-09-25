@@ -16,6 +16,10 @@ function __rt_dot(name) {
   };
 }
 
+function isStatement(x) {
+  return Syntax.isBasicDeclaration(x) || Syntax.isImport(x) || Syntax.isDeclaration(x);
+}
+
 function makeEmitter(options) {
   var emits = {
     Program: function(program) {
@@ -48,7 +52,16 @@ function makeEmitter(options) {
             ],
             kind: 'var'
           }
-        ].concat(emit(program.body))
+        ].concat(program.body.map(function(stmt) {
+          if (isStatement(stmt)) {
+            return emit(stmt);
+          } else {
+            return {
+              type: 'ExpressionStatement',
+              expression: emit(stmt)
+            };
+          }
+        }))
       };
     },
 
@@ -96,7 +109,17 @@ function makeEmitter(options) {
           {
             type: 'VariableDeclarator',
             id: emit(decl.target),
-            init: emit(decl.value) // Desugarer should ensure all Decls have 1 statement
+            init: {
+              type: 'AssignmentExpression',
+              operator: '=',
+              left: {
+                type: 'MemberExpression',
+                object: { type: 'Identifier', name: 'exports' },
+                property: emit(decl.target),
+                computed: false
+              },
+              right: emit(decl.value) // Desugarer should ensure all Decls have 1 statement
+            }
           }
         ],
         kind: 'var'
@@ -149,7 +172,7 @@ function makeEmitter(options) {
 
     Lambda: function(lambda) {
       var body = lambda.body.map(function(stmt, idx) {
-        if (Syntax.isBasicDeclaration(stmt)) {
+        if (isStatement(stmt)) {
           return emit(stmt);
         } else {
           if (idx === lambda.body.length - 1) {
@@ -192,7 +215,7 @@ function makeEmitter(options) {
         };
       } else {
         var thn = ifExpr.consequent.map(function(maybeExpr) {
-          if (Syntax.isBasicDeclaration(maybeExpr)) {
+          if (isStatement(maybeExpr)) {
             return emit(maybeExpr);
           } else {
             return {
@@ -211,7 +234,7 @@ function makeEmitter(options) {
         }
 
         var els = ifExpr.alternate.map(function(maybeExpr) {
-          if (Syntax.isBasicDeclaration(maybeExpr)) {
+          if (isStatement(maybeExpr)) {
             return emit(maybeExpr);
           } else {
             return {

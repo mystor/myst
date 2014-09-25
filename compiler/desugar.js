@@ -10,24 +10,36 @@ var preludeImports = function() {
     });
 };
 
-var desugarers = {
-  Literal: function(literal) { return [0, literal]; },
+function makeDesugarer(options) {
+  var desugarers = {
+    Literal: function(literal) { return [0, literal]; },
 
-  Identifier: function(identifier) { return [0, identifier]; },
+    Identifier: function(identifier) { return [0, identifier]; },
 
-  Program: function(program) {
-    return [0, Syntax.Program(desugar(program.body))];
-  },
+    Program: function(program) {
+      var body = [];
+      if (options.importPrelude) {
+        var preludeId = ast.uniqueId();
+        body.push(
+          Syntax.Import(Syntax.Literal(options.prelude), preludeId)
+        );
+        body = body.concat(preludeImports().map(function(name) {
+          return Syntax.BasicDeclaration(name, Syntax.Member(preludeId, name));
+        }));
+      }
 
-  Import: function(req) {
-    return [0, Syntax.Import(
-      desugar(req.resource),
-      desugar(req.as)
-    )];
-  },
+      return [0, Syntax.Program(body.concat(desugar(program.body)))];
+    },
 
-  Declaration: function(declaration, state) {
-    switch (state) {
+    Import: function(req) {
+      return [0, Syntax.Import(
+        desugar(req.resource),
+        desugar(req.as)
+      )];
+    },
+
+    Declaration: function(declaration, state) {
+      switch (state) {
       case 1: // Clean up Binds (function binds & destructures)
         if (Syntax.isFunctionBind(declaration.target)) {
           return [2, Syntax.Declaration(
@@ -71,71 +83,78 @@ var desugarers = {
             desugar(Syntax.Invocation(Syntax.Lambda([], declaration.value), []))
           )];
         }
-    }
+      }
 
-    console.log(state);
-    throw new Error('Invalid State');
-  },
+      console.log(state);
+      throw new Error('Invalid State');
+    },
 
-  FunctionBind: function() { throw new Error('Invalid FunctionBind'); },
+    FunctionBind: function() { throw new Error('Invalid FunctionBind'); },
 
-  ObjectDestructure: function() { throw new Error('Invalid ObjectDestructure'); },
+    ObjectDestructure: function() { throw new Error('Invalid ObjectDestructure'); },
 
-  PropertyDestructure: function() { throw new Error('Invalid PropertyDestructure'); },
+    PropertyDestructure: function() { throw new Error('Invalid PropertyDestructure'); },
 
-  ArrayDestructure: function() { throw new Error('Invalid ArrayDestructure'); },
+    ArrayDestructure: function() { throw new Error('Invalid ArrayDestructure'); },
 
-  Operation: function(operation) {
-    switch (operation.name) {
+    Operation: function(operation) {
+      switch (operation.name) {
       case 'rpipe':
-      return [1, Syntax.Operation(
-        'lpipe',
-        operation.snd,
-        operation.fst)];
+        return [1, Syntax.Operation(
+          'lpipe',
+          operation.snd,
+          operation.fst)];
 
       case 'lpipe':
-      return [1, Syntax.Invocation(
-        operation.fst,
-        [ operation.snd ]
-      )];
+        return [1, Syntax.Invocation(
+          operation.fst,
+          [ operation.snd ]
+        )];
 
       case 'rcompose':
-      return [1, Syntax.Operation(
-        'lcompose',
-        operation.snd,
-        operation.fst)];
+        return [1, Syntax.Operation(
+          'lcompose',
+          operation.snd,
+          operation.fst)];
 
       case 'lcompose':
-      var uid = uniqueId();
-      return [1, Syntax.Lambda(
-        [ uid ],
-        [
-          Syntax.Invocation(
-            operation.fst,
-            [ Syntax.Invocation(
-              operation.snd,
-              [ uid ]
-            ) ]
-          )
-        ]
-      )];
+        var uid = uniqueId();
+        return [1, Syntax.Lambda(
+          [ uid ],
+          [
+            Syntax.Invocation(
+              operation.fst,
+              [ Syntax.Invocation(
+                operation.snd,
+                [ uid ]
+              ) ]
+            )
+          ]
+        )];
 
       case 'or':
       case 'and':
-      return [0, Syntax.Operation(
-        operation.name,
-        desugar(operation.fst),
-        desugar(operation.snd)
+        return [0, Syntax.Operation(
+          operation.name,
+          desugar(operation.fst),
+          desugar(operation.snd)
+        )];
+      }
+      return [1, Syntax.Invocation(
+        Syntax.Identifier(operation.name),
+        [operation.fst, operation.snd]
       )];
-    }
-    return [1, Syntax.Invocation(
-      Syntax.Identifier(operation.name),
-      [operation.fst, operation.snd]
-    )];
-  },
+    },
 
-  Invocation: function(invocation, state) {
-    switch (state) {
+    UnaryOperation: function(unary) {
+      return [1, Syntax.Invocation(
+        Syntax.Identifier(unary.name),
+        [unary.arg]
+      )];
+    },
+
+    Invocation: function(invocation, state) {
+      switch (state) {
       case 1:
         if (invocation.arguments.some(Syntax.isPlaceholder)) {
           var uids = [];
@@ -159,15 +178,15 @@ var desugarers = {
         return [0, Syntax.Invocation(
           desugar(invocation.callee),
           desugar(invocation.arguments))];
-    }
+      }
 
-    throw new Error('Invalid State');
-  },
+      throw new Error('Invalid State');
+    },
 
-  Placeholder: function() { throw new Error('Invalid Placeholder'); },
+    Placeholder: function() { throw new Error('Invalid Placeholder'); },
 
-  Lambda: function(lambda, state) {
-    switch (state) {
+    Lambda: function(lambda, state) {
+      switch (state) {
       case 1: // Move destructures into body as assignments
         var destructures = [];
         var parameters = lambda.parameters.map(function(parameter) {
@@ -183,93 +202,100 @@ var desugarers = {
 
       case 2: // Decend
         return [0, Syntax.Lambda(desugar(lambda.parameters), desugar(lambda.body))];
+      }
+
+      throw new Error('Invalid State');
+    },
+
+    If: function(ifExpr) {
+      return [0, Syntax.If(
+        desugar(ifExpr.cond),
+        desugar(ifExpr.consequent),
+        desugar(ifExpr.alternate)
+      )];
+    },
+
+    Member: function(member) {
+      return [0, Syntax.Member(
+        desugar(member.object),
+        member.property
+      )];
+    },
+
+    Method: function(method) {
+      return [0, Syntax.Method(
+        desugar(method.object),
+        method.property
+      )];
+    },
+
+    Merge: function(merge) {
+      return [0, Syntax.Invocation(
+        Syntax.Identifier('merge'),
+        [
+          desugar(merge.into),
+          desugar(merge.from)
+        ]
+      )];
+    },
+
+    Object: function(object) {
+      return [0, Syntax.Object(
+        desugar(object.properties)
+      )];
+    },
+
+    ObjectProperty: function(prop) {
+      return [0, Syntax.ObjectProperty(
+        prop.key.value,
+        desugar(prop.value)
+      )];
+    },
+
+    Array: function(array) {
+      return [0, Syntax.Array(
+        desugar(array.items)
+      )];
     }
 
-    throw new Error('Invalid State');
-  },
+  };
 
-  If: function(ifExpr) {
-    return [0, Syntax.If(
-      desugar(ifExpr.cond),
-      desugar(ifExpr.consequent),
-      desugar(ifExpr.alternate)
-    )];
-  },
+  function flatten(list) {
+    var newList = [];
 
-  Member: function(member) {
-    return [0, Syntax.Member(
-      desugar(member.object),
-      member.property
-    )];
-  },
+    list.forEach(function(i) {
+      if (Array.isArray(i))
+        newList = newList.concat(i);
+      else
+        newList.push(i);
+    });
 
-  Method: function(method) {
-    return [0, Syntax.Method(
-      desugar(method.object),
-      method.property
-    )];
-  },
-
-  Merge: function(merge) {
-    return [0, Syntax.Invocation(
-      Syntax.Identifier('merge'),
-      [
-        desugar(merge.into),
-        desugar(merge.from)
-      ]
-    )];
-  },
-
-  Object: function(object) {
-    return [0, Syntax.Object(
-      desugar(object.properties)
-    )];
-  },
-
-  ObjectProperty: function(prop) {
-    return [0, Syntax.ObjectProperty(
-      prop.key.value,
-      desugar(prop.value)
-    )];
-  },
-
-  Array: function(array) {
-    return [0, Syntax.Array(
-      desugar(array.items)
-    )];
+    return newList;
   }
 
-};
+  function desugar(ast) {
+    if (Array.isArray(ast)) // Desugar every element of an array
+      return flatten(ast.map(desugar));
 
-function flatten(list) {
-  var newList = [];
+    var c = 0, s = 1;
+    while (s) {
+      if (! desugarers.hasOwnProperty(ast.type))
+        throw new Error('No desugarer for type: ' + ast.type + ' on node: ' + ast);
 
-  list.forEach(function(i) {
-    if (Array.isArray(i))
-      newList = newList.concat(i);
-    else
-      newList.push(i);
-  });
+      var r = desugarers[ast.type](ast, s);
+      s = r[0], ast = r[1];
 
-  return newList;
+      if (c++ > 1000) throw new Error('Desugar ' + ast.type + ' not done after 1000 iterations');
+    }
+
+    return ast;
+  }
+
+  return desugar;
 }
 
-function desugar(ast) {
-  if (Array.isArray(ast)) // Desugar every element of an array
-    return flatten(ast.map(desugar));
-
-  var c = 0, s = 1;
-  while (s) {
-    if (! desugarers.hasOwnProperty(ast.type))
-      throw new Error('No desugarer for type: ' + ast.type + ' on node: ' + ast);
-
-    var r = desugarers[ast.type](ast, s);
-    s = r[0], ast = r[1];
-
-    if (c++ > 1000) throw new Error('Desugar ' + ast.type + ' not done after 1000 iterations');
-  }
-
-  return ast;
+function desugar(ast, options) {
+  return makeDesugarer(options)(ast);
 }
 
 module.exports = {
