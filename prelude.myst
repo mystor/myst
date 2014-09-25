@@ -1,5 +1,6 @@
 -- prelude.myst - The built-in functions for Myst
 
+-- declare Object, Array
 import './runtime' as rt
 import 'immutable' as imm
 
@@ -26,8 +27,27 @@ let gte = rt.gte -- >=
 let lt = rt.lt   -- <
 let gt = rt.gt   -- >
 
-let map f x = (imm.Sequence.from x).map f
-let filter f x = (imm.Sequence.from x).filter (f >> rt.truth)
+-- Mapping
+let map f x = (imm.Sequence:from x):map f
+let filter f x = (imm.Sequence:from x):filter (f >> rt.truth)
+let fold f z x = (imm.Sequence:from x):reduce f z
 
-let hashMap = imm.Map
-let emptyMap = hashMap!
+-- Object Types
+let Map = imm.Map!
+let Vec = imm.Vector!
+let Set = imm.Set!
+let Obj = Object!
+let Arr = Array!
+
+-- Memoize
+let memoize f =
+    let memo = Obj#{a: 'b'}
+    fn x ->
+       if memo:hasOwnProperty x
+          then getProperty memo x
+          else let res = f x
+               set memo x res
+               res
+
+-- Range
+let range = imm.Range

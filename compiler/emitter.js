@@ -277,7 +277,7 @@ function makeEmitter(options) {
     Method: function(method) {
       return {
         type: 'CallExpression',
-        callee: __rt_dot('M'),
+        callee: __rt_dot('G'),
         arguments: [
           emit(method.object),
           {
@@ -291,17 +291,27 @@ function makeEmitter(options) {
     Object: function(object) {
       return {
         type: 'CallExpression',
-        callee: __rt_dot('O'),
-        arguments: object.properties.map(function(property) {
-          return [emit(property.key), emit(property.value)];
-        }).reduce(function(a, b) { return a.concat(b); })
+        callee: __rt_dot('M'),
+        arguments: [
+          {
+            type: 'ObjectExpression',
+            properties: object.properties.map(function(property) {
+              return {
+                type: 'Property',
+                key: emit(property.key),
+                value: emit(property.value),
+                kind: 'init'
+              };
+            })
+          }
+        ]
       };
     },
 
     Array: function(array) {
       return {
         type: 'CallExpression',
-        callee: __rt_dot('A'),
+        callee: __rt_dot('V'),
         arguments: emit(array.items)
       };
     }

@@ -1,4 +1,7 @@
 var immutable = require('immutable');
+var Map = immutable.Map;
+var Vector = immutable.Vector;
+var Sequence = immutable.Sequence;
 
 function add(a, b) {
   if (+a !== a || +b !== b) throw new Error('Cannot add non-numbers');
@@ -74,25 +77,37 @@ function truth(x) {
   return x != null && x !== false;
 }
 
-
-function get(object, property) {
-  // TODO: Add support for accessing properties of immutable objects
-  if (object.__unbound)
-    return get(object.__unbound, property);
-
+function getMethod(object, property) {
   var val = object[property];
-  if (typeof val === 'function') { // Make sure that this is bound correctly
-    var bound = Function.prototype.bind.call(val, object);
-    bound.__unbound = val;
-    return bound;
-  }
-
-  return val;
+  return val.bind(object);
 }
 
+/* Merge the object b into the object a, producing a new object */
+function merge(a, b) {
+  var merged;
+  if (a instanceof immutable.Sequence) {
+    // Use merge to create another immutable seq
+    merged = a.merge(b);
+  } else if (Array.isArray(a)) { // Object.create(Array.prototype) doesn't work :'(
+    merged = Array.prototype.slice.call(a);
+    Sequence(b).forEach(function(v, k) { merged[k] = v; });
+  } else {
+    var proto = Object.getPrototypeOf(a);
+    merged = Object.create(proto);
+    Object.keys(a).forEach(function(k) { merged[k] = a[k]; });
+    Sequence(b).forEach(function(v, k) { merged[k] = v; });
+  }
+  return merged;
+};
+
 module.exports = {
-  G: get,
-  get: get,
+  G: getMethod,
+  getMethod: getMethod,
+  M: Map,
+  Map: Map,
+  V: Vector,
+  Vector: Vector,
+  merge: merge,
   truth: truth,
   add: add,
   sub: sub,
