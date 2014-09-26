@@ -26,15 +26,15 @@ if (require.extensions) {
 }
 
 if (require.main === module) {
+  // Launch the mocha subprocess, using this file as the handler for myst file extensions.
   var child_process = require('child_process');
   var path = require('path');
 
   var cp = child_process.fork(path.join(
-    __dirname,
-    'node_modules',
-    '.bin',
-    'mocha'
-  ), [ '-u', 'tdd', '--compilers', 'myst:'+__filename ], {
+    __dirname, 'node_modules', '.bin', 'mocha'  // Binary
+  ), [
+    '-u', 'tdd', '--compilers', 'myst:'+__filename  // Arguments
+  ], {
     cwd: __dirname
   });
 
