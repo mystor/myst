@@ -72,6 +72,18 @@ function gt(a, b) {
   return a > b;
 }
 
+function concat(a, b) {
+  if (Array.isArray(a)) {
+    return a.concat(b);
+  } else if (a instanceof immutable.Sequence) {
+    return a.concat(b);
+  } else if (typeof a === 'string' && typeof b === 'string') {
+    return a + b;
+  } else {
+    throw new Error('Cannot concat those two types');
+  }
+}
+
 // Determine if a value is truthy (in Myst terms)
 function truth(x) {
   return x != null && x !== false;
@@ -123,5 +135,6 @@ module.exports = {
   lte: lte,
   gte: gte,
   lt: lt,
-  gt: gt
+  gt: gt,
+  concat: concat
 };

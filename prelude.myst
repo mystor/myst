@@ -11,6 +11,8 @@ let mul = rt.mul       -- *
 let div = rt.div       -- /
 let concat = rt.concat -- ++
 
+let neg x = 0 - x -- TODO: Make this much faster
+
 let inc x = x + 1
 let dec x = x - 1
 

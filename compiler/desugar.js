@@ -24,7 +24,7 @@ function makeDesugarer(options) {
           Syntax.Import(Syntax.Literal(options.prelude), preludeId)
         );
         body = body.concat(preludeImports().map(function(name) {
-          return Syntax.BasicDeclaration(name, Syntax.Member(preludeId, name));
+          return Syntax.BasicDeclaration(name, Syntax.Member(preludeId, name.name));
         }));
       }
 

@@ -159,7 +159,6 @@ function makeEmitter(options) {
     },
 
     Invocation: expr(function(invocation, ctx) {
-      console.log(invocation.arguments, emit(invocation.arguments, ctx));
       return {
         type: 'CallExpression',
         callee: {
@@ -344,7 +343,6 @@ function makeEmitter(options) {
 
 function emit(ast, options) {
   var em = makeEmitter(options)(ast, immut.Map());
-  console.log(JSON.stringify(em, null, 2));
   return em;
 }
 

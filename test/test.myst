@@ -1,5 +1,8 @@
 -- declare suite, test
 import assert
+import myst/compiler
+
+let compileErr code = assert.throws (fn -> compiler.compile code Obj)
 
 suite 'math' fn ->
       test 'basic operations' fn ->
@@ -24,8 +27,8 @@ suite 'variables' fn ->
            assert.equal y 10
 
       test 'cannot re-assign values' fn -> -- This will be prevented at compiletime
-           compileErr 'let x = 5\n' ++
-                      'let x = 10'
+           compileErr ('let x = 5\n' ++
+                       'let x = 10')
 
       test 'if isolates values' fn ->
            let x = 5
@@ -35,10 +38,10 @@ suite 'variables' fn ->
            assert.equal x 5
 
       test 'cannot use values defined in inner scope' fn ->
-           compileErr 'if true\n' ++
-                      '   then let x = 10\n' ++
-                      '   else let x = 20\n' ++
-                      'x'
+           compileErr ('if true\n' ++
+                       '   then let x = 10\n' ++
+                       '   else let x = 20\n' ++
+                       'x')
 
       test 'lambda isolates values' fn ->
            let x = 5
