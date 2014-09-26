@@ -1,5 +1,6 @@
 var fs = require('fs');
 var escodegen = require('escodegen');
+var immutable = require('immutable');
 
 /* Reading in Myst code */
 var lexer = require('./lexer.js');
@@ -13,6 +14,12 @@ var desugarer = require('./desugar.js');
 var emitter = require('./emitter.js');
 
 function compile(source, options) {
+  options = immutable.Map({
+    importPrelude: true,
+    prelude: 'myst/prelude',
+    runtime: 'myst/runtime'
+  }).merge(options).toObject();
+
   var parsed = layout.runParser(lexer, parser, source, options);
   var desugared = desugarer.desugar(parsed, options);
   var emitted = emitter.emit(desugared, options);

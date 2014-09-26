@@ -21,7 +21,7 @@ function __rt_import(options) {
           arguments: [
             {
               type: 'Literal',
-              value: options.runtime || 'myst/runtime'
+              value: options.runtime
             }
           ]
         }

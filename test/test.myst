@@ -2,7 +2,10 @@
 import assert
 import myst/compiler
 
-let compileErr code = assert.throws (fn -> compiler.compile code Obj)
+let compileErr code =
+    assert.throws (fn -> compiler.compile code Obj)
+                  null
+                  "Code compiled without error"
 
 suite 'math' fn ->
       test 'basic operations' fn ->

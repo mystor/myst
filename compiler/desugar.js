@@ -3,11 +3,11 @@ var uniqueId = ast.uniqueId;
 var Syntax = ast.Syntax;
 
 var preludeImports = function() {
-    var prelude = require('../prelude');
+  var prelude = require('../prelude');
 
-    return Object.keys(prelude).map(function(str) {
-      return { type: 'Identifier', name: str };
-    });
+  return Object.keys(prelude).map(function(str) {
+    return { type: 'Identifier', name: str };
+  });
 };
 
 function makeDesugarer(options) {
