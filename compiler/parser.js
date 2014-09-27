@@ -296,6 +296,9 @@ nt('merge',
 nt('object',
    '{ object_properties }', function() {
      return yy.Object($2);
+   },
+   '{ }', function() {
+     return yy.Object([]);
    }
 );
 

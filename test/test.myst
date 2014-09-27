@@ -64,6 +64,11 @@ suite 'variables' fn ->
               then assert.equal x 10
 
 suite 'objects' fn ->
+      test '{} produces an empty Map' fn ->
+           let m = Map#{}
+           let mPrime = {}
+           assertEquiv m mPrime
+
       test 'merge operator adds properties' fn ->
            let o = Obj#{a: 'b'}
            assert.equal o.a 'b'
