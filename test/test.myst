@@ -8,6 +8,7 @@ let compileErr code =
                   "Code compiled without error"
 
 let assertEquiv a b = assert.ok (a == b) (show a ++ " == " ++ show b)
+let assertNotEquiv a b = assert.ok (a != b) (show a ++ " != " ++ show b)
 
 suite 'math' fn ->
       test 'basic operations' fn ->
@@ -76,7 +77,7 @@ suite 'objects' fn ->
            assert.equal oPrime.a 'b'
            assert.equal oPrime.c 'd'
 
-      test 'property access on non-existing properties' fn ->
+      test 'non-present properties are undefined' fn ->
            let o = Obj#{a: 'b'}
            assert.equal o.c undefined
 
@@ -84,6 +85,39 @@ suite 'objects' fn ->
            let x = {a: 'b'}
            let y = Map#{a: 'b'}
            assertEquiv x y
+
+suite 'lists' fn ->
+      test '[] produces an empty Vector' fn ->
+           let v = Vec#[]
+           let vPrime = []
+           assertEquiv v vPrime
+
+      test 'vectors are equal by content' fn ->
+           let v1 = [1, 2, 3]
+           let v2 = [1, 2, 3]
+           let v3 = [1, 2, 3, 4]
+           assertEquiv v1 v2
+           assertNotEquiv v1 v3
+
+      test 'arrays are equal by reference' fn ->
+           let a1 = Arr#[1, 2, 3]
+           let a2 = Arr#[1, 2, 3]
+           assertNotEquiv a1 a2
+           assertEquiv a1 a1
+
+suite 'if' fn ->
+      test 'false and null are falsey' fn ->
+           if false then
+              assert.fail "false is truthy"
+           if null then
+              assert.fail "null is truthy"
+
+      test '0 is truthy' fn ->
+           if 0 then
+              -- Success!
+              assert.ok true
+           else
+              assert.fail "0 is falsey"
 
 suite 'functions' fn ->
       test 'nullary function application' fn ->

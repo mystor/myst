@@ -320,6 +320,9 @@ nt('object_property',
 nt('array',
    '[ array_items ]', function() {
      return yy.Array($2);
+   },
+   '[ ]', function() {
+     return yy.Array([]);
    }
 );
 
