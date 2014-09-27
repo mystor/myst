@@ -1,1 +1,1 @@
-node cli.js prelude.myst --no-import-prelude --runtime="./runtime"
+node cli.js prelude.myst --no-import-prelude --runtime="./runtime" > prelude.js

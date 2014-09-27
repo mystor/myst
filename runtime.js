@@ -48,12 +48,10 @@ function binNot(a) {
   return ~a;
 }
 
-function eq(a, b) {
-  return a === b; // TODO: Support deep equals in immutablejs objects
-}
+var eq = immutable.is;
 
 function neq(a, b) {
-  return a !== b; // TODO: Support deep equals in immutablejs objects
+  return !eq(a, b);
 }
 
 function lte(a, b) {
@@ -82,6 +80,10 @@ function concat(a, b) {
   } else {
     throw new Error('Cannot concat those two types');
   }
+}
+
+function show(x) {
+  return ''+x;
 }
 
 // Determine if a value is truthy (in Myst terms)
@@ -136,5 +138,6 @@ module.exports = {
   gte: gte,
   lt: lt,
   gt: gt,
-  concat: concat
+  concat: concat,
+  show: show
 };

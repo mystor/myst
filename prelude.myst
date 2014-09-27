@@ -44,6 +44,8 @@ let Set = imm.Set!
 let Obj = Object!
 let Arr = Array!
 
+let show = rt.show
+
 -- Memoize
 let memoize f =
     let memo = Obj#{a: 'b'}

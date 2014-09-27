@@ -41,6 +41,7 @@ var Vec = exports.Vec = imm['Vector'].call(null);
 var Set = exports.Set = imm['Set'].call(null);
 var Obj = exports.Obj = Object.call(null);
 var Arr = exports.Arr = Array.call(null);
+var show = exports.show = rt['show'];
 var memoize = exports.memoize = function (f) {
         var memo = merge.call(null, Obj, __rt.M({ 'a': 'b' }));
         return function (x) {

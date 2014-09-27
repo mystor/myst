@@ -7,6 +7,8 @@ let compileErr code =
                   null
                   "Code compiled without error"
 
+let assertEquiv a b = assert.ok (a == b) (show a ++ " == " ++ show b)
+
 suite 'math' fn ->
       test 'basic operations' fn ->
             assert.equal (1 + 1) 2
@@ -60,6 +62,23 @@ suite 'variables' fn ->
            let x = 10
            if true
               then assert.equal x 10
+
+suite 'objects' fn ->
+      test 'merge operator adds properties' fn ->
+           let o = Obj#{a: 'b'}
+           assert.equal o.a 'b'
+           let oPrime = o#{c: 'd'}
+           assert.equal oPrime.a 'b'
+           assert.equal oPrime.c 'd'
+
+      test 'property access on non-existing properties' fn ->
+           let o = Obj#{a: 'b'}
+           assert.equal o.c undefined
+
+      test 'merge onto Map is no-op on maps' fn ->
+           let x = {a: 'b'}
+           let y = Map#{a: 'b'}
+           assertEquiv x y
 
 suite 'functions' fn ->
       test 'nullary function application' fn ->
