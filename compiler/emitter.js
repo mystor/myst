@@ -236,11 +236,17 @@ function makeEmitter(options) {
     }),
 
     If: function(ifExpr, ctx) {
-      var cond = emit(ifExpr.cond, ctx.merge({
-        statement: false,
-        return: false,
-        toplevel: false
-      }));
+      var cond = {
+        type: 'CallExpression',
+        callee: __rt_dot('T'),
+        arguments: [
+          emit(ifExpr.cond, ctx.merge({
+            statement: false,
+            return: false,
+            toplevel: false
+          }))
+        ]
+      };
 
       if (ctx.get('statement')) {
         return {  // TODO: Don't emit else branch unless necessary
