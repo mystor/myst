@@ -99,7 +99,7 @@ nt('literal',
 
 /* Program Entry Point */
 nt('program',
-   '{ statements } EOF', function() {
+   '<{ statements }> EOF', function() {
      return yy.Program($2);
    }
 );
@@ -146,7 +146,7 @@ nt('import',
 );
 
 nt('declaration', // TODO: Add guards
-   'LET bind_target = { statements }', function() {
+   'LET bind_target = <{ statements }>', function() {
      return yy.Declaration($2, $5);
    }
 );
@@ -260,19 +260,19 @@ nt('argument',
 
 /* Lambda */
 nt('lambda',
-   'FN parameter_list -> { statements }', Prec('LAMBDA', function() {
+   'FN parameter_list -> <{ statements }>', Prec('LAMBDA', function() {
      return yy.Lambda($2, $5);
    }),
-   'FN -> { statements }', Prec('LAMBDA', function() {
+   'FN -> <{ statements }>', Prec('LAMBDA', function() {
      return yy.Lambda([], $4);
    })
 );
 
 nt('if',
-   'IF expression THEN { statements }', function() {
+   'IF expression THEN <{ statements }>', function() {
      return yy.If($2, $5, []);
    },
-   'IF expression THEN { statements } ELSE { statements }', function() {
+   'IF expression THEN <{ statements }> ELSE <{ statements }>', function() {
      return yy.If($2, $5, $9);
    }
 );
@@ -338,7 +338,7 @@ nt('alt_cond',
 );
 
 nt('alternative',
-   'alt_cond -> { statements }', function() {
+   'alt_cond -> <{ statements }>', function() {
      return yy.Alternative($1, $4);
    }
 );
@@ -353,7 +353,7 @@ nt('alternative_list',
 );
 
 nt('case',
-   'CASE expression OF { alternative_list }', function() {
+   'CASE expression OF <{ alternative_list }>', function() {
      return yy.Case($2, $5);
    }
 );

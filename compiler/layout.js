@@ -18,7 +18,7 @@ function insertLayoutTokens(tokens) {
 
   // If the first lexeme is preceded only by whitespace on the same line, the lexeme
   // is preceded by {n} where n is the indentation of the lexeme
-  if (['{'].indexOf(tokens[0].tok) === -1) {
+  if (['<{'].indexOf(tokens[0].tok) === -1) {
     var n = tokens[0].loc.first_indent;
     tokens.unshift(new CurlyLayoutToken(n));
     idx++;
@@ -35,8 +35,7 @@ function insertLayoutTokens(tokens) {
       if (tokens.length === idx + 1) {                                     // at EOF
         tokens.push(new CurlyLayoutToken(0));
         jump++;
-      } else if (tokens[idx + 1].tok !== '{' ||                            // no explicit block
-                 tokens.length > idx + 3 && tokens[idx + 3].tok === ':') { // { part of Object Literal
+      } else if (tokens[idx + 1].tok !== '<{') {                            // no explicit block
         var n = tokens[idx + 1].loc.first_indent;
         tokens.splice(idx + 1, 0, new CurlyLayoutToken(n));
         jump++;
@@ -81,7 +80,7 @@ function next(remaining, stack, isParseError) {
       if (!stackEmpty && m == tok.n) {            // L (<n>:ts) (m:ms) = ; : (L ts (m:ms)) if m = n
         out.push({tok: ';'});
       } else if (!stackEmpty && tok.n < m) {      // L (<n>:ts) (m:ms) = } : (L (<n>:ts) ms) if n < m
-        out.push({tok: '}'});
+        out.push({tok: '}>'});
         stack.shift();
         remaining.unshift(tok);
       } else {                                    // L (<n>:ts) ms = L ts ms
@@ -90,29 +89,29 @@ function next(remaining, stack, isParseError) {
     } else if (tok instanceof CurlyLayoutToken) {
       if (stack.length > 0 && tok.n > stack[0]) { // L({n}:ts) (m:ms) = { : (L ts (n:m:ms)) if n > m
         stack.unshift(tok.n);
-        out.push({tok: '{'});
+        out.push({tok: '<{'});
       } else if (tok.n > 0) {                     // L ({n}:ts) [] = { : (L ts [n]) if n > 0
         stack.unshift(tok.n);
-        out.push({tok: '{'});
+        out.push({tok: '<{'});
       } else {                                    // L ({n}:ts) ms = { : } : (L (<n>:ts) ms)
-        out.push({tok: '{'});
-        out.push({tok: '}'});
+        out.push({tok: '<{'});
+        out.push({tok: '}>'});
         remaining.unshift(new PointyLayoutToken(tok.n));
       }
-    } else if (tok.tok === '}') {
+    } else if (tok.tok === '}>') {
       if (!stackEmpty && m === 0) {               // L (}:ts) (0:ms) = } : (L ts ms)
-        out.push(tok /*}*/);
+        out.push(tok /*}>*/);
         stack.shift();
       } else {
         throw new Error('Implicit closing brace matches implicit opening brace');
       }
-    } else if (tok.tok === '{') {                 // L ({:ts) ms = { : (L ts (0:ms))
-      out.push(tok /*{*/);
+    } else if (tok.tok === '<{') {                 // L ({:ts) ms = { : (L ts (0:ms))
+      out.push(tok /*<{*/);
       stack.unshift(0);
     } else {
       if (!stackEmpty && m !== 0 && isParseError(tok)) { // L (t:ts) (m:ms) = } : (L (t:ts) ms)
                                                  //     if m != 0 and parse-error(t)
-        out.push({tok: '}'});
+        out.push({tok: '}>'});
         remaining.unshift(tok);
         stack.shift();
       } else {                                   // L (t:ts) ms = t : (L ts ms)
@@ -121,9 +120,9 @@ function next(remaining, stack, isParseError) {
     }
   } else if (stack.length > 0) { // Finalize any contexts
     if (stack[0] === 0) {
-      throw new Error('Reached EOF with out finding matching \'}\'');
+      throw new Error('Reached EOF with out finding matching \'}>\'');
     }
-    out.push({tok: '}'});
+    out.push({tok: '}>'});
     stack.shift();
   }
 
@@ -380,7 +379,7 @@ function runParser(lexer, parser, input) {
   // the token tok, is not a valid prefix of the Myst grammar. Otherwise,
   // it returns false.
   function isParseError(tok) {
-    return parse(state, tok).event === 'error' && parse(state, {tok: '}'}).event !== 'error'; // TODO: Maybe cache to avoid recomputing?
+    return parse(state, tok).event === 'error' && parse(state, {tok: '}>'}).event !== 'error'; // TODO: Maybe cache to avoid recomputing?
   }
 }
 
