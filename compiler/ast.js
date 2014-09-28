@@ -75,6 +75,13 @@ var Syntax = {
     };
   },
 
+  Block: function(body) {
+    return {
+      type: 'Block',
+      body: body
+    };
+  },
+
   FunctionBind: function(name, parameters) {
     return {
       type: 'FunctionBind',
@@ -98,6 +105,9 @@ var Syntax = {
       body: body
     };
   },
+
+  ObjectMatch: function() { throw new Error(); }, // TODO: implement
+  ArrayMatch: function() { throw new Error(); },  // TODO: implement
 
   ObjectDestructure: function(properties) {
     return {

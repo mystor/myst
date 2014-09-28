@@ -1,4 +1,5 @@
 var ast = require('./ast');
+var match = require('./match');
 var uniqueId = ast.uniqueId;
 var Syntax = ast.Syntax;
 
@@ -85,7 +86,6 @@ function makeDesugarer(options) {
         }
       }
 
-      console.log(state);
       throw new Error('Invalid State');
     },
 
@@ -96,6 +96,10 @@ function makeDesugarer(options) {
     PropertyDestructure: function() { throw new Error('Invalid PropertyDestructure'); },
 
     ArrayDestructure: function() { throw new Error('Invalid ArrayDestructure'); },
+
+    Case: function(caseStmt) {
+      return [1, match.processCase(caseStmt)];
+    },
 
     Operation: function(operation) {
       switch (operation.name) {

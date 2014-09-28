@@ -345,7 +345,7 @@ nt('alt_cond',
 
 nt('alternative',
    'alt_cond -> <{ statements }>', function() {
-     return yy.Alternative($1, $4);
+     return yy.Alternative([$1], $4);
    }
 );
 
@@ -360,7 +360,7 @@ nt('alternative_list',
 
 nt('case',
    'CASE expression OF <{ alternative_list }>', function() {
-     return yy.Case($2, $5);
+     return yy.Case([$2], $5);
    }
 );
 
