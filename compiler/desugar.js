@@ -89,6 +89,19 @@ function makeDesugarer(options) {
       throw new Error('Invalid State');
     },
 
+    BasicDeclaration: function(decl) {
+      return [0, Syntax.BasicDeclaration(
+        desugar(decl.target),
+        desugar(decl.value)
+      )];
+    },
+
+    Block: function(block) {
+      return [0, Syntax.Block(
+        desugar(block.body)
+      )];
+    },
+
     FunctionBind: function() { throw new Error('Invalid FunctionBind'); },
 
     ObjectDestructure: function() { throw new Error('Invalid ObjectDestructure'); },

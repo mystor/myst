@@ -158,6 +158,20 @@ function makeEmitter(options) {
       };
     },
 
+    Block: function(block, ctx) {
+      if (ctx.get('statement')) {
+        var body = emit(block.body.slice(0, block.body.length - 1), ctx.merge({ statement: true, toplevel: false, return: false }));
+        var last = emit(block.body[block.body.length - 1], ctx.merge({ statement: true, toplevel: false }));
+        body.push(last);
+        return {
+          type: 'BlockStatement',
+          body: body
+        };
+      } else {
+        return emit(Syntax.Invocation(Syntax.Lambda([], block.body), []), ctx);
+      }
+    },
+
     Invocation: expr(function(invocation, ctx) {
       return {
         type: 'CallExpression',

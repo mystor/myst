@@ -8,3 +8,9 @@ suite 'case' fn ->
              case x of
                   5 -> true
                   _ -> false
+
+      test 'trivial case 2' fn ->
+           let x = 5
+           case x of
+                5 -> true
+                6 -> true

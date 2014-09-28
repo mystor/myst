@@ -144,7 +144,8 @@ function processCase(stmt) {
 
   var cases = toSwitch(identifiers, stmt.alternatives);
 
-  console.log(JSON.stringify(cases, null, 2));
+  block.body.push(cases);
+  return block;
 }
 
 exports.processCase = processCase;
