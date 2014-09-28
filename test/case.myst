@@ -1,0 +1,10 @@
+-- declare suite, test
+import assert
+
+suite 'case' fn ->
+      test 'trivial case' fn ->
+           let x = 5
+           assert
+             case x of
+                  5 -> true
+                  _ -> false

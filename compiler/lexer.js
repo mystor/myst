@@ -109,7 +109,7 @@ lexer.addRule(/"(?:\\"|[^"])*"/, function(lexeme) {
 });
 
 /* Identifiers */
-var keywords = ['import', 'from', 'as', 'true', 'false', 'fn', 'let', 'do', 'if', 'then', 'else'];
+var keywords = ['import', 'from', 'as', 'true', 'false', 'fn', 'let', 'do', 'if', 'then', 'else', 'case', 'of'];
 lexer.addRule(/[$a-zA-Z_][$a-zA-Z0-9_]*\b/, function(lexeme) {
   if (keywords.indexOf(lexeme) !== -1)
     return lexeme.toUpperCase();

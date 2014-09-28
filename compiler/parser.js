@@ -336,8 +336,8 @@ nt('array_items',
 );
 
 nt('alt_cond',
-   'object_cond', id,
-   'array_cond', id,
+   'object_cond', id,  // TODO: Implement
+   'array_cond', id,   // TODO: Implement
    'identifier', id,
    'placeholder', id,
    'literal', id
@@ -372,7 +372,8 @@ nt('basic_expression',
    'lambda',     id,
    'object',     id,
    'array',      id,
-   'merge',      id
+   'merge',      id,
+   'case',       id
 );
 
 
