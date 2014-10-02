@@ -288,7 +288,7 @@ function toSwitch(identifiers, alternatives) {
       );
     }
 
-    else throw new Error('BAKJHASDJHGASKD');
+    else throw new Error('Unsupported match type: ' + option.cond);
   }, Syntax.Invocation(Syntax.Identifier('error'), []));
 }
 
