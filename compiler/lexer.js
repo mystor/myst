@@ -90,8 +90,8 @@ lexer.addRule(new RegExp([
   '->', '<-',                        // Functions and binds
   '==', '!=', '<=', '>=', '<', '>',  // Comparison
   '||', '&&',                        // Logical
-  '|', '=', ':', '~', '%', ',', '.', // Special
-  ';', '#', '&', '!!', '!',
+  '|', '=', ':', '~', '%', ',', ';', // Special
+  '..', '#', '.', '!!', '!',
   '+', '-', '*', '/',                // Arithmetic
   '{', '}', '(', ')', '[', ']'       // Brackets
 ].map(reSanitize).join('|')), function(lexeme) {

@@ -30,6 +30,6 @@ suite 'case' fn ->
       test 'variable-length arrays' fn ->
            let x = [1, 2, 3]
            case x of
-                [2, &xs] -> "[2, &xs]"
-                [1, &xs, 3] -> assert (xs == [2]) "xs == [2]"
-                [&xs] -> "[&xs]"
+                [2, ..xs] -> error "Wrong branch was followed"
+                [1, ..xs, 3] -> assert (xs == [2]) "xs == [2]"
+                [..xs] -> error "Wrong branch was followed"

@@ -361,10 +361,10 @@ nt('match_list',
      var x = $1.slice(); x.push($3); return x;
    },
    // Splats
-   '& identifier', function() {
+   '.. identifier', function() {
      return [yy.Splat($2)];
    },
-   'match_list , & identifier', function() {
+   'match_list , .. identifier', function() {
      var x = $1.slice(); x.push(yy.Splat($4)); return x;
    }
 );
