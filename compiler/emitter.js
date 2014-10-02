@@ -122,6 +122,18 @@ function makeEmitter(options) {
     }),
 
     Literal: expr(function(literal, ctx) {
+      if (typeof literal.value === 'number' && literal.value < 0) {
+        return { // Negative numbers are weird
+          type: 'UnaryExpression',
+          operator: '-',
+          argument: {
+            type: 'Literal',
+            value: -literal.value
+          },
+          prefix: true
+        };
+      }
+
       return {
         type: 'Literal',
         value: literal.value

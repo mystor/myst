@@ -18,11 +18,18 @@ function isLiteral(x) {
 }
 
 function ListLength(listMatch) {
+  var fixed = true;
+  var length = listMatch.items.filter(function(item) {
+    return (Syntax.isSplat(item)
+            ? fixed = false
+            : true);
+  }).length;
+
   return {
     type: 'ListLength',
     match: listMatch,
-    fixed: true,  // TODO: Implement splats
-    length: listMatch.items.length
+    fixed: fixed,
+    length: length
   };
 }
 
@@ -116,8 +123,24 @@ function logicRltn(x, y) {
 //   }, {idx: -1, rank: 0}).idx;
 // }
 
-function chooseCol() {
-  return 0; // TODO: Actually implement at some point
+function chooseCol(alts) {
+  var ranks = alts.reduce(function(memo, alt, altnum) {
+    return memo.map(function(rank, i) {
+      if (rank < altnum) return rank; // Don't update the rank if there has been a wildcard
+      if (!isWildcard(alt.targets[i])) {
+        return rank + 1;
+      } else {
+        return rank;
+      }
+    });
+  }, alts[0].targets.map(function() { return 0; }));
+
+  return ranks.reduce(function(memo, rank, idx) {
+    if (memo.rank < rank)
+      return { idx: idx, rank: rank };
+    else
+      return memo;
+  }, {idx: 0, rank: 0}).idx;
 }
 
 // Generate the identifier and alternatives set if the match is successful
@@ -149,7 +172,7 @@ function success(ids, opt, col) {
     }
   });
 
-  if (dropCol) {
+  if (dropCol || isWildcard(opt.cond)) { // We always want to drop wildcard columns if we run into them
     // Drop the column from every alternative
     newAlts.forEach(function(alt) {
       alt.targets.splice(col, 1);
@@ -243,13 +266,22 @@ function toSwitch(identifiers, alternatives) {
         var row = {};
         if (logicRltn(option.cond, target) === IMPLIES &&
             isListLength(target)) {
+          var length = target.match.items.length;
+          var fromEnd = false;
           target.match.items.forEach(function(item, i) {
             if (Syntax.isPlaceholder(item)) return;
 
-            // TODO: Handle splats and negative indices
+            if (Syntax.isSplat(item)) {
+              fromEnd = true;
+              row.SPLAT = item.as;
+              row.SPLAT_FROM = i;
+              row.SPLAT_TO = i - length + 1;
+              return;
+            }
 
-            nIds[i] = nIds[i] || ast.uniqueId();
-            row[i] = item;
+            var index = fromEnd ? i - length : i;
+            nIds[index] = nIds[index] || ast.uniqueId();
+            row[index] = item;
           });
         }
         rows.push(row);
@@ -265,9 +297,23 @@ function toSwitch(identifiers, alternatives) {
             return row[idx] || Syntax.Placeholder();
           })
         );
+        var newBody = alt.body;
+        if (row.SPLAT) {
+          newBody = [
+            Syntax.BasicDeclaration(
+              row.SPLAT,
+              Syntax.Invocation(Syntax.Identifier('slice'), [
+                id,
+                Syntax.Literal(row.SPLAT_FROM),
+                Syntax.Operation('sub',
+                                 Syntax.Invocation(Syntax.Identifier('length'), [id]),
+                                 Syntax.Literal(row.SPLAT_FROM))
+              ]))
+          ].concat(newBody);
+        }
         return Syntax.Alternative(
           newTargets,
-          alt.body
+          newBody
         );
       });
 

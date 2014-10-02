@@ -36,16 +36,26 @@ var filter = exports.filter = function (f, x) {
 var fold = exports.fold = function (f, z, x) {
         return __rt.G(__rt.G(imm['Sequence'], 'from').call(null, x), 'reduce').call(null, f, z);
     };
+var length = exports.length = function (x) {
+        return __rt.G(imm['Sequence'], 'from').call(null, x)['length'];
+    };
+var isList = exports.isList = function (x) {
+        return Array['isArray'].call(null, x) || instanceOf.call(null, x, imm['Sequence']);
+    };
 var Map = exports.Map = imm['Map'].call(null);
 var Vec = exports.Vec = imm['Vector'].call(null);
 var Set = exports.Set = imm['Set'].call(null);
 var Obj = exports.Obj = Object.call(null);
 var Arr = exports.Arr = Array.call(null);
 var show = exports.show = rt['show'];
+var get = exports.get = function (o, p) {
+        var np = __rt.T(lt.call(null, p, 0)) ? add.call(null, length.call(null, o), p) : p;
+        return rt['get'].call(null, o, np);
+    };
 var memoize = exports.memoize = function (f) {
-        var memo = merge.call(null, Obj, __rt.M({ 'a': 'b' }));
+        var memo = merge.call(null, Obj, __rt.M({}));
         return function (x) {
-            if (__rt.G(memo, 'hasOwnProperty').call(null, x)) {
+            if (__rt.T(__rt.G(memo, 'hasOwnProperty').call(null, x))) {
                 return getProperty.call(null, memo, x);
             } else {
                 var res = f.call(null, x);
@@ -54,4 +64,9 @@ var memoize = exports.memoize = function (f) {
             }
         };
     };
+var instanceOf = exports.instanceOf = rt['instanceOf'];
+var slice = exports.slice = function (x, f, t) {
+        return __rt.G(__rt.G(imm['Sequence'], 'from').call(null, x), 'slice').call(null, f, t);
+    };
 var range = exports.range = imm['Range'];
+var error = exports.error = rt['error'];

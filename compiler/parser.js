@@ -359,6 +359,13 @@ nt('match_list',
    },
    'match_list , match', function() {
      var x = $1.slice(); x.push($3); return x;
+   },
+   // Splats
+   '& identifier', function() {
+     return [yy.Splat($2)];
+   },
+   'match_list , & identifier', function() {
+     var x = $1.slice(); x.push(yy.Splat($4)); return x;
    }
 );
 

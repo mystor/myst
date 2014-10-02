@@ -36,6 +36,8 @@ let merge = rt.merge -- #
 let map f x = (imm.Sequence:from x):map f
 let filter f x = (imm.Sequence:from x):filter (f >> rt.truth)
 let fold f z x = (imm.Sequence:from x):reduce f z
+let length x = (imm.Sequence:from x).length
+let isList x = Array.isArray x || instanceOf x imm.Sequence
 
 -- Object Types
 let Map = imm.Map!
@@ -45,6 +47,9 @@ let Obj = Object!
 let Arr = Array!
 
 let show = rt.show
+let get o p =
+    let np = if p < 0 then length o + p else p
+    rt.get o np
 
 -- Memoize
 let memoize f =
@@ -56,5 +61,10 @@ let memoize f =
             set memo x res
             res
 
+let instanceOf = rt.instanceOf
+let slice x f t = (imm.Sequence:from x):slice f t
+
 -- Range
 let range = imm.Range
+
+let error = rt.error

@@ -17,7 +17,9 @@ if (require.extensions) {
       return module._compile([
         "suite(" + JSON.stringify(filename) + ", function() {",
         "  test('should compile', function() {",
-        "    throw new Error(" + JSON.stringify(e.message) + ");",
+        "    var e = new Error(" + JSON.stringify(e.message) + ");",
+        "    e.stack = " + JSON.stringify(e.stack) + ";",
+        "    throw e;",
         "  });",
         "});"
       ].join('\n'), filename);

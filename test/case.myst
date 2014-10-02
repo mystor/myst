@@ -27,3 +27,9 @@ suite 'case' fn ->
                 [1, _, _, 4] -> error!
                 [1, a, 3] -> assert.equal a 2
                 1 -> error!
+      test 'variable-length arrays' fn ->
+           let x = [1, 2, 3]
+           case x of
+                [2, &xs] -> "[2, &xs]"
+                [1, &xs, 3] -> assert (xs == [2]) "xs == [2]"
+                [&xs] -> "[&xs]"

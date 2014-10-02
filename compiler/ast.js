@@ -116,6 +116,13 @@ var Syntax = {
     };
   },
 
+  Splat: function(identifier) {
+    return {
+      type: 'Splat',
+      as: identifier
+    };
+  },
+
   ObjectDestructure: function(properties) {
     return {
       type: 'ObjectDestructure',

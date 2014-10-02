@@ -91,6 +91,12 @@ function truth(x) {
   return x != null && x !== false;
 }
 
+function get(object, property) {
+  return (object instanceof immutable.Sequence) ?
+    object.get(property) :
+    object[property];
+}
+
 function getMethod(object, property) {
   var val = object[property];
   return val.bind(object);
@@ -114,7 +120,16 @@ function merge(a, b) {
   return merged;
 };
 
+function instanceOf(x, y) {
+  return x instanceof y;
+}
+
+function error(message) {
+  throw new Error(message);
+}
+
 module.exports = {
+  get: get,
   G: getMethod,
   getMethod: getMethod,
   M: Map,
@@ -140,5 +155,7 @@ module.exports = {
   lt: lt,
   gt: gt,
   concat: concat,
-  show: show
+  show: show,
+  instanceOf: instanceOf,
+  error: error
 };
