@@ -48,8 +48,8 @@ let show = rt.show
 
 -- Memoize
 let memoize f =
-    let memo = Obj#{a: 'b'}
-    fn x ->
+    let memo = Obj#{}
+    fn x ->  -- TODO: Implement once we get globs in lambdas
        if memo:hasOwnProperty x
        then getProperty memo x
        else let res = f x

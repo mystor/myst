@@ -335,16 +335,43 @@ nt('array_items',
    }
 );
 
-nt('alt_cond',
-   'object_cond', id,  // TODO: Implement
-   'array_cond', id,   // TODO: Implement
+nt('optional_match_identifier',
+   '', function() {
+     return null;
+   },
+   '@ identifier', function() {
+     return $2;
+   }
+);
+
+nt('list_match',
+   '[ ] optional_match_identifier', function() {
+     return yy.ListMatch([], $3);
+   },
+   '[ match_list ] optional_match_identifier', function() {
+     return yy.ListMatch($2, $4);
+   }
+);
+
+nt('match_list',
+   'match', function() {
+     return [$1];
+   },
+   'match_list , match', function() {
+     var x = $1.slice(); x.push($3); return x;
+   }
+);
+
+nt('match',
+   'map_match', id,  // TODO: Implement
+   'list_match', id,
    'identifier', id,
    'placeholder', id,
    'literal', id
 );
 
 nt('alternative',
-   'alt_cond -> <{ statements }>', function() {
+   'match -> <{ statements }>', function() {
      return yy.Alternative([$1], $4);
    }
 );

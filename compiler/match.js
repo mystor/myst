@@ -10,31 +10,91 @@ function isWildcard(x) {
 }
 
 function isStructural(x) {
-  return Syntax.isObjectDestructure(x) || Syntax.isArrayDestructure(x);
+  return Syntax.isMapMatch(x) || Syntax.isListMatch(x);
 }
 
 function isLiteral(x) {
   return Syntax.isLiteral(x);
 }
 
-function isSupersetOf(x, y) {
-  if (isWildcard(x))
-    return true; // Wildcards are supersets of everything
+function ListLength(listMatch) {
+  return {
+    type: 'ListLength',
+    match: listMatch,
+    fixed: true,  // TODO: Implement splats
+    length: listMatch.items.length
+  };
+}
 
-  if (isLiteral(x)) {
-    if (isLiteral(y) && x.value === y.value)
-      return true;
-    return false;
+function isListLength(x) {
+  return x.type === 'ListLength';
+}
+
+var IMPLIES = 1
+  , UNKNOWN = 0
+  , CONTRADICTS = -1;
+
+function logicRltn(x, y) {
+  if (isWildcard(y))
+    return IMPLIES;  // Everything implies Wildcard!
+
+  else if (isWildcard(x))
+    return UNKNOWN;  // No conclusions can be drawn from Wildcard
+
+  else if (isLiteral(x)) {
+    if (isLiteral(y) && x.value === y.value) {
+      return IMPLIES;
+    } else {
+      return CONTRADICTS;  // Literals only match other literals with equal values
+    }
   }
 
-  if (isStructural(x)) {
-    if (isStructural(y) && y.type === x.type) // Stuctural matches are on type - we aren't worried about anything else
-      return true;
-    return false;
+  else if (isStructural(x)) {
+    if (isStructural(x) && x.type === y.type) {
+      return IMPLIES;
+    } else {
+      return CONTRADICTS;
+    }
   }
 
-  throw new Error('Unsupported type!');
-};
+  else if (isListLength(x)) {
+    if (isListLength(y)) {
+      if (x.fixed) {
+        if (y.fixed) {
+          if (x.length === y.length) {
+            return IMPLIES;
+          } else {
+            return CONTRADICTS;
+          }
+        } else {
+          if (x.length <= y.length) {
+            return IMPLIES;
+          } else {
+            return CONTRADICTS;
+          }
+        }
+      } else {
+        if (y.fixed) {
+          if (x.length > y.length) {
+            return CONTRADICTS;
+          } else {
+            return UNKNOWN;
+          }
+        } else {
+          if (x.length >= y.length) {
+            return IMPLIES;
+          } else {
+            return UNKNOWN;
+          }
+        }
+      }
+    } else {
+      return CONTRADICTS;
+    }
+  }
+
+  else throw new Error('Unknown type of first argument: ' + x);
+}
 
 // function necessaryColumn(matchMatrix) {
 //   var ranks = matchMatrix.reduce(function(memo, row, rownum) {
@@ -63,23 +123,44 @@ function chooseCol() {
 // Generate the identifier and alternatives set if the match is successful
 // in the column given (doesn't consider adding new columns, that is done
 // seperately.
-function successIdsAlts(identifiers, alternatives, col) {
-  var newIdentifiers = identifiers.slice();
-  newIdentifiers.splice(col, 1); // Drop the identifier
-  var id = identifiers[col];
+function success(ids, opt, col) {
+  var id = ids[col];
+  var dropCol = true;
 
-  var newAlternatives = alternatives.map(function(alt) {
-    var newTargets = alt.targets.slice();
-    newTargets.splice(col, 1); // Drop the target
-    var newBody = alt.body;
-    if (Syntax.isIdentifier(alt.targets[col])) { // Bind to the value
-      newBody = newBody.slice();
-      newBody.unshift(Syntax.BasicDeclaration(alt.targets[col], id));
+  var newAlts = opt.alternatives.map(function(alt) {
+    var target = alt.targets[col];
+    if (logicRltn(opt.cond, target) === IMPLIES) {
+      var newTargets = alt.targets.slice();
+      var newBody = alt.body.slice();
+
+      // Add any variable bindings to the body of the condition
+      if (Syntax.isIdentifier(target)) {
+        newBody.unshift(Syntax.BasicDeclaration(target, id));
+      }
+
+      // Replace the column item with a wildcard, as it has been tested
+      newTargets[col] = Syntax.Placeholder(); // TODO: Check this is correct
+      return Syntax.Alternative(newTargets, newBody);
+    } else {
+      // We have found another item in this column which might need to be checked
+      // Thus, we cannot drop the column
+      dropCol = false;
+      return alt;
     }
-    return Syntax.Alternative(newTargets, newBody);
   });
 
-  return [newIdentifiers, newAlternatives];
+  if (dropCol) {
+    // Drop the column from every alternative
+    newAlts.forEach(function(alt) {
+      alt.targets.splice(col, 1);
+    });
+
+    // As well as from the ids list
+    ids = ids.slice();
+    ids.splice(col, 1);
+  }
+
+  return [ids, newAlts];
 }
 
 function toSwitch(identifiers, alternatives) {
@@ -88,18 +169,23 @@ function toSwitch(identifiers, alternatives) {
 
   var col = chooseCol(alternatives);
 
-  // Loop through the alternatives, determining what options we need
+  // Determine what options must be considered at this switching point
+  // We want the minimal set of options necessary
   var options = [];
   alternatives.forEach(function(alt) {
-    // Add ourselves to any existing option that is a subset of us
     var addOurselves = true;
+    var target = alt.targets[col];
     options.forEach(function(option) {
-      if (isSupersetOf(alt.targets[col], option.cond)) {
-        option.alternatives.push(alt); // Add ourselves!
-      }
+      // If the given option doesn't contradict our target, we want
+      // to add ourselves to that option's alternative list
+      if (logicRltn(option.cond, target) !== CONTRADICTS) {
+        option.alternatives.push(alt);
 
-      if (isSupersetOf(option.cond, alt.targets[col])) {
-        addOurselves = false;
+        // If every time our target is true, the condition is also true,
+        // we have our bases covered, and no longer need to add ourselves
+        if (logicRltn(target, option.cond) === IMPLIES) {
+          addOurselves = false;
+        }
       }
     });
 
@@ -111,27 +197,102 @@ function toSwitch(identifiers, alternatives) {
     }
   });
 
-  return options.reduceRight(function(memo, option) {
-    var idsAlts = successIdsAlts(identifiers, option.alternatives, col);
-    console.log(JSON.stringify(idsAlts, null, 2));
+
+  return options.reduceRight(function(els, option) {
+    var successIdsAlts = success(identifiers, option, col);
+    var thnIds = successIdsAlts[0], thnAlts = successIdsAlts[1];
+    var id = identifiers[col];
+
     if (isWildcard(option.cond)) {
-      // We don't have to add any new columns, so we're done!
-      return toSwitch(idsAlts[0], idsAlts[1]);
-    } else if (isLiteral(option.cond)) {
-      // Just check, and then we're done!
-      return Syntax.If(
-        Syntax.Operation('eq', identifiers[col], option.cond),
-        [ toSwitch(idsAlts[0], idsAlts[1]) ],
-        [ memo ]
-      );
-    } else {
-      throw new Error('Not implemented yet!');
+      return toSwitch(thnIds, thnAlts);
     }
+
+    else if (isLiteral(option.cond)) {
+      return Syntax.If(
+        Syntax.Operation('eq', id, option.cond),
+        [ toSwitch(thnIds, thnAlts) ],
+        [ els ]
+      );
+    }
+
+    else if (Syntax.isListMatch(option.cond)) {
+      thnIds = thnIds.slice(); thnIds.push(id); // Add the ID
+      thnAlts = thnAlts.map(function(alt, i) {
+        var newTargets = alt.targets.slice();
+        newTargets.push(ListLength( // Get the original condition, and create a listlength
+          option.alternatives[i].targets[col]
+        ));
+        return Syntax.Alternative(
+          newTargets,
+          alt.body
+        );
+      });
+      return Syntax.If(
+        Syntax.Invocation(Syntax.Identifier('isList'), [ id ]),
+        [ toSwitch(thnIds, thnAlts) ],
+        [ els ]
+      );
+    }
+
+    else if (isListLength(option.cond)) {
+      var nIds = {};
+      var rows = [];
+
+      option.alternatives.forEach(function(alt) {
+        var target = alt.targets[col];
+        var row = {};
+        if (logicRltn(option.cond, target) === IMPLIES &&
+            isListLength(target)) {
+          target.match.items.forEach(function(item, i) {
+            if (Syntax.isPlaceholder(item)) return;
+
+            // TODO: Handle splats and negative indices
+
+            nIds[i] = nIds[i] || ast.uniqueId();
+            row[i] = item;
+          });
+        }
+        rows.push(row);
+      });
+
+      var necessaryIdxs = Object.keys(nIds);
+      thnIds = thnIds.concat(necessaryIdxs.map(function(i) { return nIds[i]; }));
+
+      thnAlts = thnAlts.map(function(alt, i) {
+        var row = rows[i];
+        var newTargets = alt.targets.concat(
+          necessaryIdxs.map(function(idx) {
+            return row[idx] || Syntax.Placeholder();
+          })
+        );
+        return Syntax.Alternative(
+          newTargets,
+          alt.body
+        );
+      });
+
+      var body = necessaryIdxs.map(function(idx) {
+        return Syntax.BasicDeclaration(nIds[idx],
+                                       Syntax.Operation('get', id, Syntax.Literal(Number(idx))));
+      });
+      body.push(toSwitch(thnIds, thnAlts));
+
+      return Syntax.If(
+        Syntax.Operation(
+          option.cond.fixed ? 'eq' : 'gte',
+          Syntax.Invocation(Syntax.Identifier('length'), [ id ]),
+          Syntax.Literal(option.cond.length)
+        ),
+        body,
+        [ els ]
+      );
+    }
+
+    else throw new Error('BAKJHASDJHGASKD');
   }, Syntax.Invocation(Syntax.Identifier('error'), []));
 }
 
 function processCase(stmt) {
-  console.log(JSON.stringify(stmt, null, 2));
   var agumentedExprs = stmt.expressions.map(function(expression) {
     return [expression, ast.uniqueId()];
   });

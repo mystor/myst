@@ -106,8 +106,15 @@ var Syntax = {
     };
   },
 
-  ObjectMatch: function() { throw new Error(); }, // TODO: implement
-  ArrayMatch: function() { throw new Error(); },  // TODO: implement
+  MapMatch: function() { throw new Error(); }, // TODO: implement
+
+  ListMatch: function(items, as) {
+    return {
+      type: 'ListMatch',
+      items: items,
+      as: as
+    };
+  },
 
   ObjectDestructure: function(properties) {
     return {
