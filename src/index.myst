@@ -1,0 +1,64 @@
+import myst/compiler
+import react
+import brace -- Ace text editor
+
+import 'brace/mode/haskell' as _
+import 'brace/mode/javascript' as _
+import 'brace/theme/monokai' as _
+
+let D = react.DOM
+
+let MystEditor =
+    react.createClass Obj#{ -- TODO: This is dumb
+        render: fn ->
+          D.div Obj#{id: 'myst-editor'}
+        , -- TODO: This is dumb
+        componentDidMount: fn ->
+          let component = this -- TODO: HACK
+
+          let editor = brace.edit 'myst-editor'
+          (editor:getSession!):setMode 'ace/mode/haskell'
+          editor:setTheme 'ace/theme/monokai'
+          editor:on 'change' fn e ->
+            component.props.onChange (editor:getValue!)
+          set this 'editor' editor}
+
+
+let JSDisplay =
+    react.createClass Obj#{
+        render: fn ->
+          D.div Obj#{id: 'js-display'}
+        ,
+        componentDidMount: fn ->
+          let editor = brace.edit 'js-display'
+          (editor:getSession!):setMode 'ace/mode/javascript'
+          editor:setTheme 'ace/theme/monokai'
+          editor:setReadOnly true
+          set this 'editor' editor
+        ,
+        componentWillReceiveProps: fn newProps ->
+          if this.editor then this.editor:setValue newProps.value}
+
+let MystHelp =
+    react.createClass Obj#{
+        render: fn -> D.span!}
+
+let Playground =
+    react.createClass Obj#{
+        getInitialState: fn -> Obj#{ js: '' }
+        ,
+        newMystCode: fn src ->
+          this:setState Obj#{
+            js: attempt (fn -> compiler.compile src Obj#{}) (fn e -> e.message)}
+        ,
+        render: fn ->
+          D.div Obj#{}
+                (D.h1 Obj#{} "Myst Playground")
+                (D.section Obj#{className: 'playground'}
+                           (MystEditor Obj#{onChange: this.newMystCode})
+                           (JSDisplay Obj#{value: this.state.js}))
+                (D.section Obj#{className: 'help'}
+                           (MystHelp!))}
+
+-- Render the component to the body
+react.renderComponent (Playground!) document.body -- (document:getElementById 'container')
