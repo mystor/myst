@@ -102,6 +102,10 @@ function getMethod(object, property) {
   return val.bind(object);
 }
 
+function set(object, property, value) {
+  object[property] = value;
+}
+
 /* Merge the object b into the object a, producing a new object */
 function merge(a, b) {
   var merged;
@@ -128,8 +132,17 @@ function error(message) {
   throw new Error(message);
 }
 
+function attempt(action, handler) {
+  try {
+    return action();
+  } catch(e) {
+    return handler(e);
+  }
+}
+
 module.exports = {
   get: get,
+  set: set,
   G: getMethod,
   getMethod: getMethod,
   M: Map,
@@ -157,5 +170,6 @@ module.exports = {
   concat: concat,
   show: show,
   instanceOf: instanceOf,
-  error: error
+  error: error,
+  attempt: attempt
 };

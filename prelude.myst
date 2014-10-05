@@ -51,6 +51,8 @@ let get o p =
     let np = if p < 0 then length o + p else p
     rt.get o np
 
+let set = rt.set
+
 -- Memoize
 let memoize f =
     let memo = Obj#{}
@@ -68,3 +70,4 @@ let slice x f t = (imm.Sequence:from x):slice f t
 let range = imm.Range
 
 let error = rt.error
+let attempt = rt.attempt

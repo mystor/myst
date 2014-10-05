@@ -52,6 +52,7 @@ var get = exports.get = function (o, p) {
         var np = __rt.T(lt.call(null, p, 0)) ? add.call(null, length.call(null, o), p) : p;
         return rt['get'].call(null, o, np);
     };
+var set = exports.set = rt['set'];
 var memoize = exports.memoize = function (f) {
         var memo = merge.call(null, Obj, __rt.M({}));
         return function (x) {
@@ -70,3 +71,4 @@ var slice = exports.slice = function (x, f, t) {
     };
 var range = exports.range = imm['Range'];
 var error = exports.error = rt['error'];
+var attempt = exports.attempt = rt['attempt'];
