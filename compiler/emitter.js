@@ -331,32 +331,55 @@ function makeEmitter(options) {
       };
     }),
 
-    Object: expr(function(object, ctx) {
-      return {
-        type: 'CallExpression',
-        callee: __rt_dot('M'),
-        arguments: [
-          {
-            type: 'ObjectExpression',
-            properties: object.properties.map(function(property) {
-              return {
-                type: 'Property',
-                key: emit(property.key, ctx),
-                value: emit(property.value, ctx),
-                kind: 'init'
-              };
-            })
-          }
-        ]
+    Map: expr(function(map, ctx) {
+      var obj = {
+        type: 'ObjectExpression',
+        properties: map.properties.map(function(property) {
+          return {
+            type: 'Property',
+            key: emit(property.key, ctx),
+            value: emit(property.value, ctx),
+            kind: 'init'
+          };
+        })
       };
+
+      if (map.kind === 'Map') {
+        return {
+          type: 'CallExpression',
+          callee: __rt_dot('M'),
+          arguments: [obj]
+        };
+      } else if (map.kind === 'Obj') {
+        return obj;
+      } else {
+        throw new Error('Invalid map kind');
+      }
     }),
 
-    Array: expr(function(array, ctx) {
-      return {
-        type: 'CallExpression',
-        callee: __rt_dot('V'),
-        arguments: emit(array.items, ctx)
+    Vec: expr(function(vec, ctx) {
+      var arr = {
+        type: 'ArrayExpression',
+        elements: emit(vec.items, ctx)
       };
+
+      if (vec.kind === 'Vec') {
+        return {
+          type: 'CallExpression',
+          callee: __rt_dot('V'),
+          arguments: [arr]
+        };
+      } else if (vec.kind === 'Set') {
+        return {
+          type: 'CallExpression',
+          callee: __rt_dot('S'),
+          arguments: [arr]
+        };
+      } else if (vec.kind === 'Arr') {
+        return arr;
+      } else {
+        throw new Error('Invalid vec kind');
+      }
     })
   };
 

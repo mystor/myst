@@ -39,13 +39,6 @@ let fold f z x = (imm.Sequence:from x):reduce f z
 let length x = (imm.Sequence:from x).length
 let isList x = Array.isArray x || instanceOf x imm.Sequence
 
--- Object Types
-let Map = imm.Map!
-let Vec = imm.Vector!
-let Set = imm.Set!
-let Obj = Object!
-let Arr = Array!
-
 let show = rt.show
 let get o p =
     let np = if p < 0 then length o + p else p
@@ -55,7 +48,7 @@ let set = rt.set
 
 -- Memoize
 let memoize f =
-    let memo = Obj#{}
+    let memo = Obj{}
     fn x ->  -- TODO: Implement once we get globs in lambdas
        if memo:hasOwnProperty x
        then getProperty memo x

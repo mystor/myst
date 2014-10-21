@@ -123,28 +123,6 @@ var Syntax = {
     };
   },
 
-  ObjectDestructure: function(properties) {
-    return {
-      type: 'ObjectDestructure',
-      properties: properties
-    };
-  },
-
-  PropertyDestructure: function(property, as) {
-    return {
-      type: 'PropertyDestructure',
-      property: property,
-      as: as
-    };
-  },
-
-  ArrayDestructure: function(items) {
-    return {
-      type: 'ArrayDestructure',
-      items: items
-    };
-  },
-
   Invocation: function(callee, arguments) {
     return {
       type: 'Invocation',
@@ -201,24 +179,26 @@ var Syntax = {
     };
   },
 
-  Object: function(properties) {
+  Map: function(kind, properties) {
     return {
-      type: 'Object',
+      type: 'Map',
+      kind: kind,
       properties: properties
     };
   },
 
-  ObjectProperty: function(key, value) {
+  Property: function(key, value) {
     return {
       type: 'ObjectProperty',
-      key: Syntax.Literal(key),
+      key: Syntax.Literal(key.name),
       value: value
     };
   },
 
-  Array: function(items) {
+  Vec: function(kind, items) {
     return {
-      type: 'Array',
+      type: 'Vec',
+      kind: kind,
       items: items
     };
   }

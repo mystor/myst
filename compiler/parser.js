@@ -60,6 +60,11 @@ var grammar = {
   }
 };
 
+nt('opt_semi',
+   '', function() {},
+   ';', function() {}
+);
+
 /* Simple Primitive Objects */
 nt('identifier',
    'IDENTIFIER', function() {
@@ -99,7 +104,7 @@ nt('literal',
 
 /* Program Entry Point */
 nt('program',
-   '<{ statements }> EOF', function() {
+   '{ statements } EOF', function() {
      return yy.Program($2);
    }
 );
@@ -146,7 +151,7 @@ nt('import',
 );
 
 nt('declaration', // TODO: Add guards
-   'LET bind_target = <{ statements }>', function() {
+   'LET bind_target = { statements }', function() {
      return yy.Declaration($2, $5);
    }
 );
@@ -171,39 +176,7 @@ nt('parameter_list',
 
 nt('parameter',
    'identifier', id,
-   'destructure', id
-);
-
-nt('destructure',
-   '{ obj_destructure_list }', function() {
-     return yy.ObjectDestructure($2);
-   },
-   '[ arr_destructure_list ]', function() {
-     return yy.ArrayDestructure($2);
-   }
-);
-
-nt('obj_destructure_list',
-   'obj_destructure', function() { return [$1]; },
-   'obj_destructure_list , obj_destructure', function() {
-     var x = $1.slice(); x.push($3); return x;
-   }
-);
-
-nt('obj_destructure',
-   'identifier', function() {
-     return yy.PropertyDestructure($1.name, $1);
-   },
-   'IDENTIFIER : parameter', function() {
-     return yy.PropertyDestructure($1, $3);
-   }
-);
-
-nt('arr_destructure_list',
-   'parameter', function() { return [$1]; },
-   'arr_destructure_list , parameter', function() {
-     var x = $1.slice(); x.push($3); return x;
-   }
+   'destructure', id  // TODO: Re-implement
 );
 
 /* Operators */
@@ -260,19 +233,19 @@ nt('argument',
 
 /* Lambda */
 nt('lambda',
-   'FN parameter_list -> <{ statements }>', Prec('LAMBDA', function() {
+   'FN parameter_list -> { statements }', Prec('LAMBDA', function() {
      return yy.Lambda($2, $5);
    }),
-   'FN -> <{ statements }>', Prec('LAMBDA', function() {
+   'FN -> { statements }', Prec('LAMBDA', function() {
      return yy.Lambda([], $4);
    })
 );
 
 nt('if',
-   'IF expression THEN <{ statements }>', function() {
+   'IF expression THEN { statements }', function() {
      return yy.If($2, $5, []);
    },
-   'IF expression THEN <{ statements }> ELSE <{ statements }>', function() {
+   'IF expression THEN { statements } ELSE { statements }', function() {
      return yy.If($2, $5, $9);
    }
 );
@@ -293,45 +266,55 @@ nt('merge',
    }
 );
 
-nt('object',
-   '{ object_properties }', function() {
-     return yy.Object($2);
+nt('data_literal',
+   'OBJ mapish', function() {
+     return yy.Map('Obj', $2);
    },
-   '{ }', function() {
-     return yy.Object([]);
+   'MAP mapish', function() {
+     return yy.Map('Map', $2);
+   },
+   'ARR vecish', function() {
+     return yy.Vec('Arr', $2);
+   },
+   'VEC vecish', function() {
+     return yy.Vec('Vec', $2);
+   },
+   'SET vecish', function() {
+     return yy.Vec('Set', $2);
    }
 );
 
-nt('object_properties',
-   'object_property', function() {
+nt('mapish',
+   '{ opt_semi }', function() { return []; },
+   '{ properties opt_semi }', function() { return $2; }
+);
+
+nt('properties',
+   'property', function() {
      return [$1];
    },
-   'object_properties , object_property', function() {
-     var x = $1.slice(); x.push($3); return x;
+   'properties ; property', function() {
+     return $1.concat($3);
    }
 );
 
-nt('object_property',
-   'IDENTIFIER : expression', function() {
-     return yy.ObjectProperty($1, $3);
+nt('property',
+   'identifierName : expression', function() {
+     return yy.Property($1, $3);
    }
 );
 
-nt('array',
-   '[ array_items ]', function() {
-     return yy.Array($2);
-   },
-   '[ ]', function() {
-     return yy.Array([]);
-   }
+nt('vecish',
+   '{ opt_semi }', function() { return []; },
+   '{ items opt_semi }', function() { return $2; }
 );
 
-nt('array_items',
+nt('items',
    'expression', function() {
      return [$1];
    },
-   'array_items , expression', function() {
-     var x = $1.slice(); x.push($3); return x;
+   'items ; expression', function() {
+     return $1.concat($3);
    }
 );
 
@@ -357,14 +340,14 @@ nt('match_list',
    'match', function() {
      return [$1];
    },
-   'match_list , match', function() {
+   'match_list ; match', function() {
      var x = $1.slice(); x.push($3); return x;
    },
    // Splats
    '.. identifier', function() {
      return [yy.Splat($2)];
    },
-   'match_list , .. identifier', function() {
+   'match_list ; .. identifier', function() {
      var x = $1.slice(); x.push(yy.Splat($4)); return x;
    }
 );
@@ -378,7 +361,7 @@ nt('match',
 );
 
 nt('alternative',
-   'match -> <{ statements }>', function() {
+   'match -> { statements }', function() {
      return yy.Alternative([$1], $4);
    }
 );
@@ -393,21 +376,20 @@ nt('alternative_list',
 );
 
 nt('case',
-   'CASE expression OF <{ alternative_list }>', function() {
+   'CASE expression OF { alternative_list }', function() {
      return yy.Case([$2], $5);
    }
 );
 
 nt('basic_expression',
    '( expression )', function() {return $2;},
-   'identifier', id,
-   'member',     id,
-   'literal',    id,
-   'lambda',     id,
-   'object',     id,
-   'array',      id,
-   'merge',      id,
-   'case',       id
+   'identifier',   id,
+   'member',       id,
+   'literal',      id,
+   'lambda',       id,
+   'data_literal', id,
+   'merge',        id,
+   'case',         id
 );
 
 

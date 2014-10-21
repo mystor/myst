@@ -50,7 +50,7 @@ function makeDesugarer(options) {
               declaration.value
             )]
           )];
-        } else if (Syntax.isObjectDestructure(declaration.target)) {
+        } else if (/* Syntax.isObjectDestructure(declaration.target) */ false) {
           var uid = uniqueId();
           var decls = [Syntax.Declaration(uid, declaration.value)];
           decls = decls.concat(declaration.target.properties.map(function(property) {
@@ -60,7 +60,7 @@ function makeDesugarer(options) {
             );
           }));
           return [0, desugar(decls)];
-        } else if (Syntax.isArrayDestructure(declaration.target)) {
+        } else if (/* Syntax.isArrayDestructure(declaration.target) */ false) {
           var uid = uniqueId();
           var decls = [Syntax.Declaration(uid, declaration.value)];
           decls = decls.concat(declaration.target.items.map(function(item, i) {
@@ -256,22 +256,24 @@ function makeDesugarer(options) {
       )];
     },
 
-    Object: function(object) {
-      return [0, Syntax.Object(
-        desugar(object.properties)
+    Map: function(map) {
+      return [0, Syntax.Map(
+        map.kind,
+        desugar(map.properties)
       )];
     },
 
-    ObjectProperty: function(prop) {
-      return [0, Syntax.ObjectProperty(
-        prop.key.value,
+    Property: function(prop) {
+      return [0, Syntax.Property(
+        prop.key,
         desugar(prop.value)
       )];
     },
 
-    Array: function(array) {
-      return [0, Syntax.Array(
-        desugar(array.items)
+    Vec: function(vec) {
+      return [0, Syntax.Vec(
+        vec.kind,
+        desugar(vec.items)
       )];
     }
 
